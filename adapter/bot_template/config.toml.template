@@ -1,0 +1,26 @@
+# Konfigurations-Template für Bot-Implementierungen
+# Ersetze die Platzhalter entsprechend deines Bot-Typs
+
+[{{ BOT_TYPE }}]
+# Bot-spezifische Konfiguration
+# Diese Sektion wird je nach Bot-Typ angepasst
+
+# Allgemeine Bot-Einstellungen
+max_retries = 3
+retry_delay = 5
+
+# Logging
+log_level = "INFO"
+log_file = "logs/{{ BOT_TYPE }}_bot.log"
+
+# API-Einstellungen
+api_host = "0.0.0.0"
+api_port = {{ API_PORT }}
+
+# Sicherheit
+rate_limit = 100  # Nachrichten pro Minute
+max_message_length = 4096
+
+# Platzhalter, die ersetzt werden müssen:
+# {{ BOT_TYPE }} - Der Typ des Bots (z.B. whatsapp, telegram)
+# {{ API_PORT }} - Der Port für die API (Standard: 8000)

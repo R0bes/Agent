@@ -1,0 +1,18 @@
+# Bot Interface Dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
+# WhatsApp Bot Dependencies
+selenium-wire>=5.1.0
+selenium>=4.15.0
+pywhatkit>=5.4
+qrcode>=7.4.2
+Pillow>=10.0.0
+webdriver-manager>=4.0.0
+
+# Optional: Für bessere Browser-Unterstützung
+undetected-chromedriver>=3.5.0
+
+# Windows-spezifisch: Für Taskleisten-Versteckung
+pywin32>=306; sys_platform == "win32"

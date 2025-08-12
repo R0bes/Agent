@@ -1,0 +1,29 @@
+# Traefik Konfiguration für Agent-System
+# Unterstützt sowohl Entwicklung als auch Produktionsumgebungen
+
+# API und Dashboard
+api:
+  dashboard: true
+  insecure: true  # Dashboard auf Standard-Port aktiviert
+
+# Entrypoints
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+# Provider
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: agent-network
+    useBindPortIP: false
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
+
+# Logging
+log:
+  level: DEBUG

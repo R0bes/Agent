@@ -1,0 +1,35 @@
+# Dockerfile Template für Bot-Implementierungen
+# Ersetze die folgenden Werte entsprechend deines Bot-Typs:
+# - BOT_TYPE: Der Typ des Bots (z.B. whatsapp, telegram)
+# - API_PORT: Der Port für die API (Standard: 8000)
+
+FROM python:3.11-slim
+
+# Arbeitsverzeichnis setzen
+WORKDIR /app
+
+# System-Abhängigkeiten installieren
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python-Abhängigkeiten installieren
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Bot-spezifische Dateien kopieren
+COPY bot_interface.py /app/
+COPY BOT_TYPE_bot_interface.py /app/BOT_TYPE_bot/
+COPY config.toml /app/
+
+# Logs-Verzeichnis erstellen
+RUN mkdir -p /app/logs
+
+# Umgebungsvariablen setzen
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV BOT_TYPE=BOT_TYPE
+
+# Bot starten
+CMD ["python", "-m", "BOT_TYPE_bot.BOT_TYPE_bot_interface"]
