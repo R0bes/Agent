@@ -381,33 +381,47 @@ class LocalMonitor:
         
         print(f"\n⏱️  Gesamtzeit: {time.time() - self.start_time:.2f}s")
 
-    def run_full_monitoring(self, run_tests: bool = True, test_type: str = "quick"):
+    def run_full_monitoring(self, run_tests: bool = True, test_type: str = "quick", quiet: bool = False):
         """Führt vollständiges Monitoring durch."""
-        self.print_header()
+        if not quiet:
+            self.print_header()
         
         results = {}
         
         # Git-Status
+        if not quiet:
+            print("📝 Git-Status wird geprüft...")
         results["git"] = self.check_git_status()
         
         # Python-Umgebung
+        if not quiet:
+            print("\n🐍 Python-Umgebung wird geprüft...")
         results["python"] = self.check_python_environment()
         
         # Projektstruktur
+        if not quiet:
+            print("\n📁 Projektstruktur wird geprüft...")
         results["structure"] = self.check_project_structure()
         
         # Services
+        if not quiet:
+            print("\n🔍 Services werden geprüft...")
         results["services"] = self.check_services()
         
         # Tests (optional)
         if run_tests:
+            if not quiet:
+                print(f"\n🧪 Tests werden ausgeführt ({test_type})...")
             results["tests"] = self.run_tests(test_type)
         
         # Code-Qualität
+        if not quiet:
+            print("\n🔍 Code-Qualität wird geprüft...")
         results["quality"] = self.check_code_quality()
         
         # Bericht generieren
-        self.generate_report(results)
+        if not quiet:
+            self.generate_report(results)
         
         return results
 
@@ -428,6 +442,9 @@ def main():
     parser.add_argument(
         "--interval", type=int, default=30, help="Überwachungsintervall in Sekunden"
     )
+    parser.add_argument(
+        "--quiet", action="store_true", help="Reduzierte Ausgabe für Pre-Commit Hooks"
+    )
 
     args = parser.parse_args()
     
@@ -442,7 +459,8 @@ def main():
             while True:
                 monitor.run_full_monitoring(
                     run_tests=not args.no_tests,
-                    test_type=args.test_type
+                    test_type=args.test_type,
+                    quiet=args.quiet
                 )
                 print(f"\n⏳ Warte {args.interval} Sekunden...")
                 time.sleep(args.interval)
@@ -452,7 +470,8 @@ def main():
     else:
         monitor.run_full_monitoring(
             run_tests=not args.no_tests,
-            test_type=args.test_type
+            test_type=args.test_type,
+            quiet=args.quiet
         )
 
 
