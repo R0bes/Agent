@@ -29,14 +29,24 @@ help:
 	@echo "    clean        - 🧹 Räumt temporäre Dateien auf"
 	@echo ""
 	@echo "📝 Git Commands:"
-	@echo "    commit       - 💾 Git commit (interaktiv oder mit Nachricht)"
-	@echo "    commit MSG   - 💾 Git commit mit direkter Nachricht"
+	@echo "    commit       - 💾 Git commit mit Pre-Commit Checks"
+	@echo "    commit MSG   - 💾 Git commit mit Nachricht + Pre-Commit"
+	@echo "    commit-quick - 🚀 Schneller Commit ohne Checks"
 	@echo "    push         - 📤 Git push zum Remote-Repository"
 	@echo "    commit-push  - 🚀 Commit und Push in einem Schritt"
 	@echo ""
+	@echo "🔒 Pre-Commit Checks:"
+	@echo "    pre-commit   - 🔒 Führt Tests und Linting aus"
+	@echo "    lint-check   - 🔍 Prüft Code-Format und Qualität"
+	@echo ""
+	@echo "🚀 Pipeline Monitoring:"
+	@echo "    pipeline     - 🚀 Überwacht CI/CD Pipeline"
+	@echo "    pipeline-msg - 📊 Pipeline-Status mit Nachricht"
+	@echo ""
 	@echo "💡 Beispiele:"
-	@echo "    make commit           - Interaktiver Commit"
-	@echo "    make commit 'Fix bug' - Commit mit Nachricht 'Fix bug'"
+	@echo "    make commit           - Commit mit Pre-Commit Checks"
+	@echo "    make commit 'Fix bug' - Commit mit Nachricht + Checks"
+	@echo "    make commit-quick     - Schneller Commit ohne Checks"
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "    test-all     - 🧪 Alle Tests ausführen"
@@ -217,7 +227,7 @@ test-help:
 
 # 📝 Git Commands
 .PHONY: commit
-commit:
+commit: pre-commit
 	@echo "📝 Git Status:"
 	@git status --short
 	@echo ""
@@ -238,6 +248,58 @@ else
 endif
 	@echo "✅ Commit erfolgreich!"
 
+# 🔒 Pre-Commit Hook
+.PHONY: pre-commit
+pre-commit:
+	@echo "🔒 Pre-Commit Checks werden ausgeführt..."
+	@echo "🧪 Führe Tests aus..."
+	@$(MAKE) test-quick
+	@echo "🔍 Prüfe Code-Format..."
+	@$(MAKE) lint-check
+	@echo "✅ Pre-Commit Checks erfolgreich!"
+	@echo ""
+
+# 🔍 Linting und Code-Qualität
+.PHONY: lint-check
+lint-check:
+	@echo "🔍 Prüfe Python-Code mit flake8..."
+	@if command -v flake8 >/dev/null 2>&1; then \
+		flake8 server/ --max-line-length=100 --ignore=E501,W503; \
+	else \
+		echo "⚠️  flake8 nicht installiert, überspringe Linting"; \
+	fi
+	@echo "🔍 Prüfe Python-Code mit black..."
+	@if command -v black >/dev/null 2>&1; then \
+		black --check server/; \
+	else \
+		echo "⚠️  black nicht installiert, überspringe Format-Check"; \
+	fi
+	@echo "✅ Linting-Checks abgeschlossen!"
+
+# 🚀 Quick Commit (ohne Pre-Commit Checks)
+.PHONY: commit-quick
+commit-quick:
+	@echo "🚀 Schneller Commit ohne Pre-Commit Checks..."
+	@echo "📝 Git Status:"
+	@git status --short
+	@echo ""
+	@echo "💾 Committing changes..."
+	@git add .
+ifeq ($(OS),Windows_NT)
+	@if "$(filter-out $@,$(MAKECMDGOALS))"=="" ( \
+		set /p message="Commit message: " && git commit -m "!message!" --no-verify \
+	) else ( \
+		git commit -m "$(filter-out $@,$(MAKECMDGOALS))" --no-verify \
+	)
+else
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		read -p "Commit message: " message; git commit -m "$$message" --no-verify; \
+	else \
+		git commit -m "$(filter-out $@,$(MAKECMDGOALS))" --no-verify; \
+	fi
+endif
+	@echo "✅ Schneller Commit erfolgreich!"
+
 .PHONY: push
 push:
 	@echo "📤 Pushe Änderungen zum Remote-Repository..."
@@ -251,3 +313,23 @@ commit-push: commit push
 # 🎯 Alias für einfache Ausführung
 test: test-all
 tests: test-all
+
+# 🚀 Pipeline Monitoring
+.PHONY: pipeline
+pipeline:
+	@echo "🚀 Starte Pipeline-Monitoring..."
+	@if [ -f "scripts/pipeline_monitor.py" ]; then \
+		python3 scripts/pipeline_monitor.py; \
+	else \
+		echo "❌ Pipeline-Monitor-Script nicht gefunden: scripts/pipeline_monitor.py"; \
+		echo "💡 Stelle sicher, dass das Script existiert und ausführbar ist"; \
+	fi
+
+.PHONY: pipeline-msg
+pipeline-msg:
+	@echo "📊 Pipeline-Status wird überwacht..."
+	@if [ -f "scripts/pipeline_monitor.py" ]; then \
+		python3 scripts/pipeline_monitor.py --timeout 600; \
+	else \
+		echo "❌ Pipeline-Monitor-Script nicht gefunden: scripts/pipeline_monitor.py"; \
+	fi
