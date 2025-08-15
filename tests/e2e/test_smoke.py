@@ -19,9 +19,9 @@ class TestChatBackendSmoke:
     @pytest.fixture
     def client(self):
         """TestClient für E2E Tests."""
-        from server.api import create_app
-        test_app = create_app()
-        return TestClient(test_app)
+        from fastapi.testclient import TestClient
+        from server.api import app
+        return TestClient(app)
     
     @pytest.fixture
     def mock_queen_agent(self):
@@ -44,7 +44,18 @@ class TestChatBackendSmoke:
     
     def test_root_endpoint_smoke(self, client):
         """Smoke Test für Root-Endpoint."""
-        pytest.skip("HTTP-Tests temporär deaktiviert - API-Integration problematisch")
+        # Test des Root-Endpoints
+        response = client.get("/")
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "message" in data
+        assert "version" in data
+        assert "endpoints" in data
+        assert data["message"] == "Chat Backend API"
+        assert data["version"] == "1.0.0"
+        
+        print("✅ Root-Endpoint funktioniert")
     
     @patch('server.api.get_queen_instance')
     def test_chat_endpoint_smoke(self, mock_get_queen, client, mock_queen_agent):
@@ -458,13 +469,18 @@ class TestIntegrationSmoke:
         
         print("✅ Vollständiger Chat-Workflow funktioniert")
     
-    def test_error_scenarios_smoke(self, client):
+    @patch('server.api.get_queen_instance')
+    def test_error_scenarios_smoke(self, mock_get_queen, client):
         """Smoke Test für Fehlerszenarien."""
         # 1. Ungültige JSON-Anfrage
-        response = client.post("/chat", data="invalid json", headers={"Content-Type": "application/json"})
+        response = client.post("/chat", content="invalid json", headers={"Content-Type": "application/json"})
         assert response.status_code == 422  # FastAPI Validierungsfehler
         
-        # 2. Fehlende Queen Agent (ohne Mock)
+        # 2. Queen Agent mit Exception (mit Mock)
+        mock_queen = Mock()
+        mock_queen.chat_response = AsyncMock(side_effect=Exception("Test Exception"))
+        mock_get_queen.return_value = mock_queen
+        
         response = client.post("/chat", json={"content": "Test", "user_id": "test"})
         assert response.status_code == 500  # Server-Fehler
         

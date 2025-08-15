@@ -387,45 +387,38 @@ class TestTaskEngine:
         small_queue_engine = TaskEngine(max_workers=1, queue_size=1)
         await small_queue_engine.start()
         
-        # Queue mit sehr langsamen Tasks füllen
-        slow_tasks = []
-        for i in range(3):  # Mehr als Queue-Größe
-            task = MockTask(f"slow_task_{i}", execution_time=5.0)  # Sehr lange Ausführungszeit
-            slow_tasks.append(task)
+        # Einfache Tasks mit sehr kurzer Ausführungszeit
+        tasks = []
+        for i in range(3):
+            task = MockTask(f"task_{i}", execution_time=0.1)  # Sehr kurze Ausführungszeit
+            tasks.append(task)
         
         task_input = TaskInput(data={"test": "data"})
         
         # Ersten Task einreichen (sollte sofort starten)
-        first_task = asyncio.create_task(
-            small_queue_engine.submit_task(slow_tasks[0], task_input)
-        )
+        await small_queue_engine.submit_task(tasks[0], task_input)
         
-        # Warten, damit erster Task startet und Worker beschäftigt ist
-        await asyncio.sleep(1.0)
+        # Kurz warten, damit erster Task startet
+        await asyncio.sleep(0.1)
         
         # Zweiten Task einreichen (sollte in Queue landen)
-        second_task = asyncio.create_task(
-            small_queue_engine.submit_task(slow_tasks[1], task_input)
-        )
+        await small_queue_engine.submit_task(tasks[1], task_input)
         
-        # Warten, bis Queue wirklich voll ist
-        await asyncio.sleep(1.0)
-        
-        # Queue sollte jetzt voll sein
+        # Queue sollte jetzt einen Task enthalten
         assert small_queue_engine.get_queue_size() == 1
         
         # Dritten Task einreichen (sollte Exception werfen, da Queue voll)
         with pytest.raises(RuntimeError, match="Task Queue ist voll"):
-            await small_queue_engine.submit_task(slow_tasks[2], task_input)
+            await small_queue_engine.submit_task(tasks[2], task_input)
         
         # Warten, bis alle Tasks abgeschlossen sind
-        await asyncio.gather(first_task, second_task)
+        await asyncio.sleep(0.5)
         
         # Überprüfe, dass die ersten beiden Tasks ausgeführt wurden
-        assert slow_tasks[0].executed == True
-        assert slow_tasks[1].executed == True
+        assert tasks[0].executed == True, f"Task 0 nicht ausgeführt: {tasks[0].executed}"
+        assert tasks[1].executed == True, f"Task 1 nicht ausgeführt: {tasks[1].executed}"
         # Dritter Task wurde nie eingereicht
-        assert slow_tasks[2].executed == False
+        assert tasks[2].executed == False
         
         await small_queue_engine.stop()
     

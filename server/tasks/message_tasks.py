@@ -10,7 +10,7 @@ from datetime import datetime
 
 from .base import BaseTask, TaskInput, TaskOutput, TaskPriority, TaskStatus
 from .engine import MessageEvent
-from agents.queen_agent import get_queen_instance
+from ..agents.queen_agent import get_queen_instance
 
 
 class ChatMessageTask(BaseTask):

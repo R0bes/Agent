@@ -1,5 +1,5 @@
 """
-Queen-Agent Implementierung als Singleton.
+Queen-Agent Implementierung.
 Erbt von OllamaAgent und bietet erweiterte Chat-Funktionalität.
 """
 
@@ -27,46 +27,18 @@ class QueenConfig(OllamaConfig):
 
 class QueenAgent(OllamaAgent):
     """
-    Queen-Agent als Singleton-Implementierung.
+    Queen-Agent mit erweiterter Chat-Funktionalität.
     
     Diese Klasse erbt von OllamaAgent und fügt erweiterte Chat-Funktionalität hinzu.
-    Sie ist als Singleton implementiert, sodass nur eine Instanz existiert.
     """
-    
-    _instance = None
-    _lock = None  # Wird bei Bedarf erstellt
-    
-    def __new__(cls, config: Optional[QueenConfig] = None):
-        """Singleton-Implementierung - stellt sicher, dass nur eine Instanz existiert."""
-        if cls._instance is None:
-            # Thread-sichere Singleton-Implementierung
-            if cls._lock is None:
-                cls._lock = asyncio.Lock()
-            
-            # Für synchrone Aufrufe verwenden wir eine einfache Überprüfung
-            if cls._instance is None:
-                if config is None:
-                    # Standard-Konfiguration verwenden
-                    config = QueenConfig(
-                        name="queen",
-                        model="llama3",
-                        temperature=0.8,
-                        system_prompt="Du bist die Queen - eine weise, freundliche und hilfreiche Assistentin."
-                    )
-                cls._instance = super().__new__(cls)
-                cls._instance._initialized = False
-        return cls._instance
     
     def __init__(self, config: Optional[QueenConfig] = None):
         """
-        Initialisiert den Queen-Agenten (nur einmal).
+        Initialisiert den Queen-Agenten.
         
         Args:
             config: Queen-spezifische Konfiguration
         """
-        if self._initialized:
-            return
-            
         if config is None:
             config = QueenConfig(
                 name="queen",
@@ -90,7 +62,6 @@ class QueenAgent(OllamaAgent):
         self.total_conversations = 0
         self.total_responses = 0
         
-        self._initialized = True
         self.queen_logger.info("Queen-Agent initialisiert")
         
         # WebSocket-Integration (Mock)
@@ -506,7 +477,7 @@ class QueenAgent(OllamaAgent):
         return self.__str__()
 
 
-# Globale Queen-Instanz für einfachen Zugriff
+# Factory-Funktion für den Queen-Agenten
 async def get_queen_instance(config: Optional[QueenConfig] = None) -> QueenAgent:
     """
     Factory-Funktion für den Queen-Agenten.

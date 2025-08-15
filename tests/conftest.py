@@ -17,10 +17,10 @@ from datetime import datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'server'))
 
 try:
-    from api import create_app
-    from core import ConnectionManager
-    from tasks.engine import TaskEngine, GlobalEventManager
-    from tasks.base import TaskInput, TaskOutput, TaskStatus, TaskPriority
+    from server.api import create_app
+    from server.core import ConnectionManager
+    from server.tasks.engine import TaskEngine, GlobalEventManager
+    from server.tasks.base import TaskInput, TaskOutput, TaskStatus, TaskPriority
 except ImportError as e:
     print(f"Import-Fehler: {e}")
     print("Stelle sicher, dass alle Server-Module verfügbar sind.")
