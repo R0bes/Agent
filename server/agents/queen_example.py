@@ -10,35 +10,6 @@ from datetime import datetime
 from .queen_agent import QueenAgent, QueenConfig, get_queen_instance
 from .base_agent import StreamChunk
 
-
-async def demonstrate_singleton():
-    """Demonstriert, dass Queen als Singleton funktioniert."""
-    print("🔍 Demonstriere Singleton-Verhalten...")
-    
-    # Erste Queen-Instanz erstellen
-    queen1 = QueenAgent()
-    queen1_id = id(queen1)
-    print(f"Queen 1 ID: {queen1_id}")
-    
-    # Zweite Queen-Instanz erstellen (sollte dieselbe sein)
-    queen2 = QueenAgent()
-    queen2_id = id(queen2)
-    print(f"Queen 2 ID: {queen2_id}")
-    
-    # Dritte Queen-Instanz mit Factory-Funktion
-    queen3 = await get_queen_instance()
-    queen3_id = id(queen3)
-    print(f"Queen 3 ID: {queen3_id}")
-    
-    # Überprüfen, ob alle IDs identisch sind
-    if queen1_id == queen2_id == queen3_id:
-        print("✅ Singleton funktioniert: Alle Queen-Instanzen sind identisch!")
-    else:
-        print("❌ Singleton funktioniert nicht!")
-    
-    print()
-
-
 async def demonstrate_chat_functionality():
     """Demonstriert die Chat-Funktionalität der Queen."""
     print("💬 Demonstriere Chat-Funktionalität...")

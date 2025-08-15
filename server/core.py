@@ -51,17 +51,34 @@ class ConnectionManager:
             client_id: Eindeutige Client-ID
         """
         await websocket.accept()
+        
+        # Wenn Client bereits verbunden ist, zuerst trennen
+        was_already_connected = client_id in self.active_connections
+        if was_already_connected:
+            # Bei Ersetzung den Zähler nicht verändern
+            del self.active_connections[client_id]
+        else:
+            # Nur bei neuer Verbindung den Zähler erhöhen
+            self.connection_count += 1
+        
         self.active_connections[client_id] = websocket
-        self.connection_count += 1
         logger.info(f"Client {client_id} connected. Total connections: {self.connection_count}")
         
         # Willkommensnachricht senden
-        welcome_message = {
-            "type": "system",
-            "content": f"Willkommen! Sie sind als {client_id} verbunden.",
-            "timestamp": datetime.now().isoformat()
-        }
-        await websocket.send_text(json.dumps(welcome_message))
+        try:
+            welcome_message = {
+                "type": "system",
+                "content": f"Willkommen! Sie sind als {client_id} verbunden.",
+                "timestamp": datetime.now().isoformat()
+            }
+            await websocket.send_text(json.dumps(welcome_message))
+        except Exception as e:
+            # Bei Fehler Verbindung trennen und Zähler zurücksetzen
+            logger.error(f"Error sending welcome message to {client_id}: {e}")
+            del self.active_connections[client_id]
+            if not was_already_connected:
+                self.connection_count -= 1
+            raise
     
     def disconnect(self, client_id: str):
         """

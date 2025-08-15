@@ -7,7 +7,7 @@ Erweitert um globales Event-Handling für API-Nachrichten.
 import asyncio
 import threading
 from concurrent.futures import ThreadPoolExecutor, Future
-from queue import PriorityQueue, Empty, Queue
+from queue import PriorityQueue, Empty, Full, Queue
 from typing import Dict, List, Optional, Callable, Any
 import logging
 import time
@@ -89,6 +89,7 @@ class GlobalEventManager:
                 await self.message_worker_task
             except asyncio.CancelledError:
                 pass
+            self.message_worker_task = None
         
         self.logger.info("Global Event Manager gestoppt")
     
@@ -202,6 +203,12 @@ class TaskEngine:
             max_workers: Maximale Anzahl von Worker-Threads
             queue_size: Maximale Größe der Task-Warteschlange
         """
+        if queue_size <= 0:
+            raise ValueError("Queue-Größe muss größer als 0 sein")
+        
+        if max_workers <= 0:
+            raise ValueError("Max Workers muss größer als 0 sein")
+        
         self.max_workers = max_workers
         self.queue_size = queue_size
         
@@ -313,6 +320,9 @@ class TaskEngine:
             self.logger.debug(f"Task {task.task_id} zur Queue hinzugefügt (Priorität: {task.priority.name})")
             return task.task_id
             
+        except Full:
+            self.logger.error(f"Queue voll - Task {task.task_id} kann nicht hinzugefügt werden")
+            raise RuntimeError(f"Task Queue ist voll (Größe: {self.queue_size})")
         except Exception as e:
             self.logger.error(f"Fehler beim Hinzufügen von Task {task.task_id}: {e}")
             raise
@@ -421,9 +431,15 @@ class TaskEngine:
             # Auf Abschluss warten
             result = await self.loop.run_in_executor(None, future.result)
             
-            # Task als abgeschlossen markieren
-            task.set_output(result)
-            task.complete()
+            # Prüfen, ob Task erfolgreich war
+            if result.is_success():
+                # Task als erfolgreich abgeschlossen markieren
+                task.set_output(result)
+                task.complete()
+            else:
+                # Task als fehlgeschlagen markieren
+                task.set_error(result.get_error())
+                raise Exception(result.get_error())
             
             # Task zu completed_tasks verschieben
             if task.task_id in self.tasks:
@@ -440,7 +456,7 @@ class TaskEngine:
             # Callback aufrufen
             if self.on_task_completed:
                 try:
-                    self.on_task_completed(task)
+                    self.on_task_completed(task, result)
                 except Exception as e:
                     self.logger.error(f"Fehler im on_task_completed Callback: {e}")
             
@@ -501,7 +517,7 @@ class TaskEngine:
     
     def set_callbacks(
         self,
-        on_task_completed: Optional[Callable[[BaseTask], None]] = None,
+        on_task_completed: Optional[Callable[[BaseTask, TaskOutput], None]] = None,
         on_task_failed: Optional[Callable[[BaseTask, str], None]] = None
     ) -> None:
         """
