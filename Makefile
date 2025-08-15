@@ -43,6 +43,11 @@ help:
 	@echo "    pipeline     - 🚀 Überwacht CI/CD Pipeline"
 	@echo "    pipeline-msg - 📊 Pipeline-Status mit Nachricht"
 	@echo ""
+	@echo "📊 Lokales Monitoring:"
+	@echo "    monitor      - 📊 Vollständiges lokales Monitoring"
+	@echo "    monitor-quick- ⚡ Schnelles Monitoring (ohne Tests)"
+	@echo "    monitor-watch- 🔄 Kontinuierliches Monitoring"
+	@echo ""
 	@echo "💡 Beispiele:"
 	@echo "    make commit           - Commit mit Pre-Commit Checks"
 	@echo "    make commit 'Fix bug' - Commit mit Nachricht + Checks"
@@ -252,6 +257,13 @@ endif
 .PHONY: pre-commit
 pre-commit:
 	@echo "🔒 Pre-Commit Checks werden ausgeführt..."
+	@echo "📊 Führe lokales Monitoring durch..."
+	@if [ -f "scripts/local_monitor.py" ]; then \
+		python3 scripts/local_monitor.py --no-tests --quiet; \
+		echo "✅ Lokales Monitoring abgeschlossen"; \
+	else \
+		echo "⚠️  Lokaler Monitor nicht gefunden, überspringe Monitoring"; \
+	fi
 	@echo "🧪 Führe Tests aus..."
 	@$(MAKE) test-quick
 	@echo "🔍 Prüfe Code-Format..."
@@ -332,4 +344,32 @@ pipeline-msg:
 		python3 scripts/pipeline_monitor.py --timeout 600; \
 	else \
 		echo "❌ Pipeline-Monitor-Script nicht gefunden: scripts/pipeline_monitor.py"; \
+	fi
+
+# 📊 Lokales Monitoring
+.PHONY: monitor
+monitor:
+	@echo "📊 Starte lokales Monitoring..."
+	@if [ -f "scripts/local_monitor.py" ]; then \
+		python3 scripts/local_monitor.py; \
+	else \
+		echo "❌ Lokaler Monitor nicht gefunden: scripts/local_monitor.py"; \
+	fi
+
+.PHONY: monitor-quick
+monitor-quick:
+	@echo "⚡ Schnelles lokales Monitoring (ohne Tests)..."
+	@if [ -f "scripts/local_monitor.py" ]; then \
+		python3 scripts/local_monitor.py --no-tests; \
+	else \
+		echo "❌ Lokaler Monitor nicht gefunden: scripts/local_monitor.py"; \
+	fi
+
+.PHONY: monitor-watch
+monitor-watch:
+	@echo "🔄 Kontinuierliches lokales Monitoring..."
+	@if [ -f "scripts/local_monitor.py" ]; then \
+		python3 scripts/local_monitor.py --watch; \
+	else \
+		echo "❌ Lokaler Monitor nicht gefunden: scripts/local_monitor.py"; \
 	fi
