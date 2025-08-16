@@ -276,13 +276,13 @@ pre-commit:
 lint-check:
 	@echo "🔍 Prüfe Python-Code mit flake8..."
 	@if command -v flake8 >/dev/null 2>&1; then \
-		flake8 server/ --max-line-length=100 --ignore=E501,W503; \
+		flake8 server/ --max-line-length=100 --ignore=E501,W503 --exclude=server/.venv,server/__pycache__,server/*/__pycache__; \
 	else \
 		echo "⚠️  flake8 nicht installiert, überspringe Linting"; \
 	fi
 	@echo "🔍 Prüfe Python-Code mit black..."
 	@if command -v black >/dev/null 2>&1; then \
-		black --check server/; \
+		black --check server/ --exclude=server/.venv; \
 	else \
 		echo "⚠️  black nicht installiert, überspringe Format-Check"; \
 	fi

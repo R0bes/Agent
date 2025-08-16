@@ -22,27 +22,23 @@ def iso() -> str:
 @dataclass
 class UserMessage:
     """Message sent by a user to the system."""
+
     id: str
     session_id: str
     ts: str
     type: str
     payload: Any
-    
+
     @classmethod
     def new(cls, session_id: str, payload: Any, type_: str = "user.input") -> "UserMessage":
         """Create a new UserMessage with auto-generated id and timestamp."""
-        return cls(
-            id=uid(),
-            session_id=session_id,
-            ts=iso(),
-            type=type_,
-            payload=payload
-        )
+        return cls(id=uid(), session_id=session_id, ts=iso(), type=type_, payload=payload)
 
 
 @dataclass
 class QueenMessage:
     """Message sent by the Queen/agent system."""
+
     id: str
     correlation_id: str
     session_id: str
@@ -51,11 +47,17 @@ class QueenMessage:
     payload: Any
     progress_pct: Optional[float] = None
     stage: Optional[str] = None
-    
+
     @classmethod
-    def make(cls, correlation_id: str, session_id: str, payload: Any, 
-             type_: str, progress_pct: Optional[float] = None, 
-             stage: Optional[str] = None) -> "QueenMessage":
+    def make(
+        cls,
+        correlation_id: str,
+        session_id: str,
+        payload: Any,
+        type_: str,
+        progress_pct: Optional[float] = None,
+        stage: Optional[str] = None,
+    ) -> "QueenMessage":
         """Create a new QueenMessage with auto-generated id and timestamp."""
         return cls(
             id=uid(),
@@ -65,7 +67,7 @@ class QueenMessage:
             type=type_,
             payload=payload,
             progress_pct=progress_pct,
-            stage=stage
+            stage=stage,
         )
 
 
