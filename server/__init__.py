@@ -11,4 +11,11 @@ TASKS_AVAILABLE = False
 __version__ = "1.0.0"
 __author__ = "Chat Backend Team"
 
-__all__ = ["ConnectionManager", "ChatMessage", "ChatResponse", "manager", "app", "create_app"]
+__all__ = [
+    "ConnectionManager",
+    "ChatMessage",
+    "ChatResponse",
+    "manager",
+    "app",
+    "create_app",
+]

@@ -143,7 +143,9 @@ class BaseAgent(ABC):
 class AgentError(Exception):
     """Basis-Exception für alle Agent-bezogenen Fehler."""
 
-    def __init__(self, message: str, agent_name: str = None, original_error: Exception = None):
+    def __init__(
+        self, message: str, agent_name: str = None, original_error: Exception = None
+    ):
         self.message = message
         self.agent_name = agent_name
         self.original_error = original_error

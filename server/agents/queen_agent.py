@@ -12,6 +12,7 @@ from .base_agent import StreamChunk
 
 class QueenConfig(OllamaConfig):
     """Spezielle Konfiguration für den Queen-Agenten."""
+
     default_system_prompt: str = (
         "Du bist die Queen - eine weise, freundliche und hilfreiche "
         "Assistentin. Du antwortest immer höflich und respektvoll. "
@@ -47,7 +48,7 @@ class QueenAgent(OllamaAgent):
                 system_prompt=(
                     "Du bist die Queen - eine weise, freundliche und "
                     "hilfreiche Assistentin."
-                )
+                ),
             )
 
         # Basis-Initialisierung
@@ -68,9 +69,7 @@ class QueenAgent(OllamaAgent):
         self.queen_logger.info("Queen-Agent initialisiert")
 
         # WebSocket-Integration (Mock)
-        self.websocket_handlers: List[
-            Callable[[StreamChunk], None]
-        ] = []
+        self.websocket_handlers: List[Callable[[StreamChunk], None]] = []
 
     async def initialize(self) -> bool:
         """
@@ -90,15 +89,11 @@ class QueenAgent(OllamaAgent):
         # Queen-spezifische Initialisierung
         try:
             self.is_queen_active = True
-            self.queen_logger.info(
-                "Queen ist aktiv und bereit für Konversationen"
-            )
+            self.queen_logger.info("Queen ist aktiv und bereit für Konversationen")
             return True
 
         except Exception as e:
-            self.queen_logger.error(
-                f"Fehler bei der Queen-Initialisierung: {e}"
-            )
+            self.queen_logger.error(f"Fehler bei der Queen-Initialisierung: {e}")
             return False
 
     async def chat_response(
@@ -106,7 +101,7 @@ class QueenAgent(OllamaAgent):
         user_message: str,
         user_id: Optional[str] = None,
         conversation_id: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Generiert eine Chat-Antwort der Queen.
@@ -133,18 +128,13 @@ class QueenAgent(OllamaAgent):
             # Antwort generieren
             response = await self.generate_response(
                 prompt=user_message,
-                context=(
-                    self.conversation_memory if self.context_awareness
-                    else None
-                ),
+                context=(self.conversation_memory if self.context_awareness else None),
                 system_prompt=enhanced_system_prompt,
-                **kwargs
+                **kwargs,
             )
 
             # Queen-Antwort zur Erinnerung hinzufügen
-            self._add_to_memory(
-                "assistant", response.content, user_id, conversation_id
-            )
+            self._add_to_memory("assistant", response.content, user_id, conversation_id)
 
             # Statistiken aktualisieren
             self.total_responses += 1
@@ -158,12 +148,11 @@ class QueenAgent(OllamaAgent):
                 "user_id": user_id,
                 "model": response.model,
                 "style": self.response_style,
-                "memory_size": len(self.conversation_memory)
+                "memory_size": len(self.conversation_memory),
             }
 
             self.queen_logger.info(
-                f"Queen hat auf Nachricht von {user_id or 'unbekannt'} "
-                "geantwortet"
+                f"Queen hat auf Nachricht von {user_id or 'unbekannt'} " "geantwortet"
             )
             return queen_response
 
@@ -177,7 +166,7 @@ class QueenAgent(OllamaAgent):
         user_id: Optional[str] = None,
         conversation_id: Optional[str] = None,
         on_chunk: Optional[Callable[[StreamChunk], None]] = None,
-        **kwargs
+        **kwargs,
     ) -> AsyncGenerator[StreamChunk, None]:
         """
         Generiert eine gestreamte Chat-Antwort der Queen.
@@ -200,26 +189,21 @@ class QueenAgent(OllamaAgent):
 
         try:
             # Konversation zur Erinnerung hinzufügen
-            self._add_to_memory(
-                "user", user_message, user_id, conversation_id
-            )
+            self._add_to_memory("user", user_message, user_id, conversation_id)
 
             # System-Prompt anpassen basierend auf Kontext
-            enhanced_system_prompt = self._enhance_system_prompt(
-                user_message
-            )
+            enhanced_system_prompt = self._enhance_system_prompt(user_message)
 
             # Streaming-Antwort versuchen
             try:
                 async for chunk in self.generate_response_stream(
                     prompt=user_message,
                     context=(
-                        self.conversation_memory if self.context_awareness
-                        else None
+                        self.conversation_memory if self.context_awareness else None
                     ),
                     system_prompt=enhanced_system_prompt,
                     on_chunk=on_chunk,
-                    **kwargs
+                    **kwargs,
                 ):
                     # Chunk weitergeben
                     yield chunk
@@ -234,11 +218,10 @@ class QueenAgent(OllamaAgent):
                 async for chunk in self.generate_response_stream(
                     prompt=user_message,
                     context=(
-                        self.conversation_memory if self.context_awareness
-                        else None
+                        self.conversation_memory if self.context_awareness else None
                     ),
                     system_prompt=enhanced_system_prompt,
-                    **kwargs
+                    **kwargs,
                 ):
                     complete_response += chunk.content
                     if chunk.done:
@@ -251,19 +234,17 @@ class QueenAgent(OllamaAgent):
             except Exception as stream_error:
                 # Fallback auf normale Antworten
                 self.queen_logger.warning(
-                    f"Streaming fehlgeschlagen, verwende Fallback: "
-                    f"{stream_error}"
+                    f"Streaming fehlgeschlagen, verwende Fallback: " f"{stream_error}"
                 )
 
                 # Normale Antwort generieren
                 response = await self.generate_response(
                     prompt=user_message,
                     context=(
-                        self.conversation_memory if self.context_awareness
-                        else None
+                        self.conversation_memory if self.context_awareness else None
                     ),
                     system_prompt=enhanced_system_prompt,
-                    **kwargs
+                    **kwargs,
                 )
 
                 # Queen-Antwort zur Erinnerung hinzufügen
@@ -276,7 +257,7 @@ class QueenAgent(OllamaAgent):
                     content=response.content,
                     done=True,
                     model=response.model,
-                    usage=response.usage
+                    usage=response.usage,
                 )
 
                 if on_chunk:
@@ -293,21 +274,15 @@ class QueenAgent(OllamaAgent):
             )
 
         except Exception as e:
-            self.queen_logger.error(
-                f"Fehler bei der gestreamten Chat-Antwort: {e}"
-            )
+            self.queen_logger.error(f"Fehler bei der gestreamten Chat-Antwort: {e}")
             raise
 
-    def add_websocket_handler(
-        self, handler: Callable[[StreamChunk], None]
-    ) -> None:
+    def add_websocket_handler(self, handler: Callable[[StreamChunk], None]) -> None:
         """Fügt einen WebSocket-Handler hinzu."""
         self.websocket_handlers.append(handler)
         self.queen_logger.info("WebSocket-Handler hinzugefügt")
 
-    def remove_websocket_handler(
-        self, handler: Callable[[StreamChunk], None]
-    ) -> None:
+    def remove_websocket_handler(self, handler: Callable[[StreamChunk], None]) -> None:
         """Entfernt einen WebSocket-Handler."""
         if handler in self.websocket_handlers:
             self.websocket_handlers.remove(handler)
@@ -319,16 +294,14 @@ class QueenAgent(OllamaAgent):
             try:
                 handler(chunk)
             except Exception as e:
-                self.queen_logger.error(
-                    f"Fehler im WebSocket-Handler: {e}"
-                )
+                self.queen_logger.error(f"Fehler im WebSocket-Handler: {e}")
 
     async def chat_response_stream_websocket(
         self,
         user_message: str,
         user_id: Optional[str] = None,
         conversation_id: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Generiert eine gestreamte Chat-Antwort und sendet sie über WebSocket.
@@ -345,7 +318,7 @@ class QueenAgent(OllamaAgent):
             user_id=user_id,
             conversation_id=conversation_id,
             on_chunk=self.emit_chunk,
-            **kwargs
+            **kwargs,
         ):
             # Chunks werden bereits über emit_chunk gesendet
             pass
@@ -354,7 +327,7 @@ class QueenAgent(OllamaAgent):
         self,
         user_id: str,
         conversation_id: Optional[str] = None,
-        initial_message: Optional[str] = None
+        initial_message: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Startet eine neue Konversation mit der Queen.
@@ -372,9 +345,7 @@ class QueenAgent(OllamaAgent):
 
         # Konversation zur Erinnerung hinzufügen
         if initial_message:
-            self._add_to_memory(
-                "user", initial_message, user_id, conversation_id
-            )
+            self._add_to_memory("user", initial_message, user_id, conversation_id)
 
         self.total_conversations += 1
 
@@ -387,19 +358,17 @@ class QueenAgent(OllamaAgent):
             "conversation_id": conversation_id,
             "user_id": user_id,
             "timestamp": datetime.now().isoformat(),
-            "style": self.response_style
+            "style": self.response_style,
         }
 
-        self.queen_logger.info(
-            f"Neue Konversation gestartet mit {user_id}"
-        )
+        self.queen_logger.info(f"Neue Konversation gestartet mit {user_id}")
         return welcome_message
 
     async def end_conversation(
         self,
         user_id: str,
         conversation_id: Optional[str] = None,
-        farewell_message: Optional[str] = None
+        farewell_message: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Beendet eine Konversation mit der Queen.
@@ -430,7 +399,7 @@ class QueenAgent(OllamaAgent):
             "conversation_id": conversation_id,
             "user_id": user_id,
             "timestamp": datetime.now().isoformat(),
-            "style": self.response_style
+            "style": self.response_style,
         }
 
         self.queen_logger.info(f"Konversation mit {user_id} beendet")
@@ -441,7 +410,7 @@ class QueenAgent(OllamaAgent):
         role: str,
         content: str,
         user_id: Optional[str] = None,
-        conversation_id: Optional[str] = None
+        conversation_id: Optional[str] = None,
     ):
         """Fügt eine Nachricht zur Konversationserinnerung hinzu."""
         memory_entry = {
@@ -449,7 +418,7 @@ class QueenAgent(OllamaAgent):
             "content": content,
             "timestamp": datetime.now().isoformat(),
             "user_id": user_id,
-            "conversation_id": conversation_id
+            "conversation_id": conversation_id,
         }
 
         self.conversation_memory.append(memory_entry)
@@ -465,7 +434,8 @@ class QueenAgent(OllamaAgent):
         if conversation_id:
             # Spezifische Konversation entfernen
             self.conversation_memory = [
-                msg for msg in self.conversation_memory
+                msg
+                for msg in self.conversation_memory
                 if not (
                     msg.get("user_id") == user_id
                     and msg.get("conversation_id") == conversation_id
@@ -474,8 +444,7 @@ class QueenAgent(OllamaAgent):
         else:
             # Alle Nachrichten des Benutzers entfernen
             self.conversation_memory = [
-                msg for msg in self.conversation_memory
-                if msg.get("user_id") != user_id
+                msg for msg in self.conversation_memory if msg.get("user_id") != user_id
             ]
 
     def _enhance_system_prompt(self, user_message: str) -> str:
@@ -490,23 +459,27 @@ class QueenAgent(OllamaAgent):
         style_enhancements = {
             "friendly": "Antworte in einem freundlichen und warmen Ton.",
             "formal": "Antworte in einem höflichen und formellen Ton.",
-            "casual": "Antworte in einem lockeren und entspannten Ton."
+            "casual": "Antworte in einem lockeren und entspannten Ton.",
         }
 
         style_prompt = style_enhancements.get(self.response_style, "")
 
         # Kontext-basierte Anpassungen
         context_enhancement = ""
-        if ("programmiere" in user_message.lower()
-                or "code" in user_message.lower()
-                or "python" in user_message.lower()):
+        if (
+            "programmiere" in user_message.lower()
+            or "code" in user_message.lower()
+            or "python" in user_message.lower()
+        ):
             context_enhancement = (
                 " Du bist auch eine Expertin für Programmierung und "
                 "Software-Entwicklung."
             )
-        elif ("wissenschaft" in user_message.lower()
-              or "forschung" in user_message.lower()
-              or "physik" in user_message.lower()):
+        elif (
+            "wissenschaft" in user_message.lower()
+            or "forschung" in user_message.lower()
+            or "physik" in user_message.lower()
+        ):
             context_enhancement = (
                 " Du bist auch eine Expertin für Wissenschaft und Forschung."
             )
@@ -527,7 +500,7 @@ class QueenAgent(OllamaAgent):
             "response_style": self.response_style,
             "context_awareness": self.context_awareness,
             "model": self.model,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
     def update_queen_style(self, new_style: str):
@@ -535,13 +508,9 @@ class QueenAgent(OllamaAgent):
         valid_styles = ["friendly", "formal", "casual"]
         if new_style in valid_styles:
             self.response_style = new_style
-            self.queen_logger.info(
-                f"Queen-Stil auf '{new_style}' geändert"
-            )
+            self.queen_logger.info(f"Queen-Stil auf '{new_style}' geändert")
         else:
-            raise ValueError(
-                f"Ungültiger Stil. Gültige Stile: {valid_styles}"
-            )
+            raise ValueError(f"Ungültiger Stil. Gültige Stile: {valid_styles}")
 
     async def cleanup(self) -> None:
         """Bereinigt Queen-spezifische Ressourcen."""
@@ -563,9 +532,7 @@ class QueenAgent(OllamaAgent):
 
 
 # Factory-Funktion für den Queen-Agenten
-async def get_queen_instance(
-    config: Optional[QueenConfig] = None
-) -> QueenAgent:
+async def get_queen_instance(config: Optional[QueenConfig] = None) -> QueenAgent:
     """
     Factory-Funktion für den Queen-Agenten.
 

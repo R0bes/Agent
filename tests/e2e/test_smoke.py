@@ -384,10 +384,10 @@ class TestTaskEngineSmoke:
     async def test_task_engine_basic_smoke(self):
         """Smoke Test für grundlegende Task Engine-Funktionalität."""
         from server.tasks.engine import TaskEngine
-        from server.tasks.base import BaseTask, TaskInput, TaskOutput, TaskStatus, TaskPriority
+        from server.tasks.base import Task, TaskInput, TaskOutput, TaskStatus, TaskPriority
         
         # Einfache Mock Task
-        class SimpleTask(BaseTask):
+        class SimpleTask(Task):
             def __init__(self, task_id):
                 super().__init__(task_id)
                 self.executed = False

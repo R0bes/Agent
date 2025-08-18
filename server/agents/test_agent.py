@@ -2,14 +2,18 @@
 Tests für den Base-Agenten.
 """
 
-from .base_agent import BaseAgent, AgentConfig
+import asyncio
+from .base_agent import AgentConfig, AgentResponse, AgentError, StreamChunk
+from .ollama_agent import OllamaAgent, OllamaConfig
 
 
 def test_base_agent_config():
     """Testet die AgentConfig-Klasse."""
     print("🧪 Teste AgentConfig...")
 
-    config = AgentConfig(name="test-agent", model="test-model", temperature=0.5, max_tokens=100)
+    config = AgentConfig(
+        name="test-agent", model="test-model", temperature=0.5, max_tokens=100
+    )
 
     assert config.name == "test-agent"
     assert config.model == "test-model"
@@ -24,7 +28,10 @@ def test_ollama_config():
     print("🧪 Teste OllamaConfig...")
 
     config = OllamaConfig(
-        name="ollama-test", model="llama2", base_url="http://localhost:11434", stream=False
+        name="ollama-test",
+        model="llama2",
+        base_url="http://localhost:11434",
+        stream=False,
     )
 
     assert config.name == "ollama-test"
@@ -42,7 +49,9 @@ def test_agent_response():
 
     from datetime import datetime
 
-    response = AgentResponse(content="Test-Antwort", model="test-model", usage={"tokens": 10})
+    response = AgentResponse(
+        content="Test-Antwort", model="test-model", usage={"tokens": 10}
+    )
 
     assert response.content == "Test-Antwort"
     assert response.model == "test-model"
@@ -111,7 +120,9 @@ def test_stream_chunk():
 
     from datetime import datetime
 
-    chunk = StreamChunk(content="Test", done=False, model="test-model", usage={"tokens": 5})
+    chunk = StreamChunk(
+        content="Test", done=False, model="test-model", usage={"tokens": 5}
+    )
 
     assert chunk.content == "Test"
     assert chunk.done is False

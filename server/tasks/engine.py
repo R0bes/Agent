@@ -4,18 +4,23 @@ Task Engine für die Verarbeitung von Nachrichten.
 
 import asyncio
 import logging
-from typing import Dict, Any, Optional, List, Callable
+import time
+from typing import Dict, Any, Optional, Callable
 from datetime import datetime
-from collections import deque
+from queue import Queue, PriorityQueue, Empty, Full
+from concurrent.futures import ThreadPoolExecutor, Future
 
-from .base import Task, TaskStatus, TaskPriority
-from .message_tasks import MessageTask
+from .base import Task, TaskInput, TaskOutput, TaskStatus
+
+# from .message_tasks import MessageTask  # Zirkulärer Import entfernt
 
 
 class MessageEvent:
     """Repräsentiert eine eingehende Nachricht als Event."""
 
-    def __init__(self, message_data: dict, client_id: str, timestamp: Optional[datetime] = None):
+    def __init__(
+        self, message_data: dict, client_id: str, timestamp: Optional[datetime] = None
+    ):
         self.message_data = message_data
         self.client_id = client_id
         self.timestamp = timestamp or datetime.now()
@@ -163,13 +168,19 @@ class GlobalEventManager:
                 try:
                     self.message_handlers[message_type](message_event)
                     self.stats["processed_messages"] += 1
-                    self.logger.debug(f"Nachricht {message_event.event_id} erfolgreich verarbeitet")
+                    self.logger.debug(
+                        f"Nachricht {message_event.event_id} erfolgreich verarbeitet"
+                    )
                 except Exception as e:
-                    self.logger.error(f"Fehler im Message Handler für {message_type}: {e}")
+                    self.logger.error(
+                        f"Fehler im Message Handler für {message_type}: {e}"
+                    )
                     self.stats["failed_messages"] += 1
             else:
                 # Standard-Handler für unbekannte Nachrichtentypen
-                self.logger.warning(f"Kein Handler für Nachrichtentyp '{message_type}' registriert")
+                self.logger.warning(
+                    f"Kein Handler für Nachrichtentyp '{message_type}' registriert"
+                )
                 self.stats["failed_messages"] += 1
 
         except Exception as e:
@@ -181,7 +192,9 @@ class GlobalEventManager:
     def get_stats(self) -> Dict[str, Any]:
         """Gibt aktuelle Statistiken des Event Managers zurück."""
         stats = self.stats.copy()
-        stats.update({"queue_size": self.message_queue.qsize(), "is_running": self.is_running})
+        stats.update(
+            {"queue_size": self.message_queue.qsize(), "is_running": self.is_running}
+        )
         return stats
 
 
@@ -217,9 +230,9 @@ class TaskEngine:
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
 
         # Task-Verwaltung
-        self.tasks: Dict[str, BaseTask] = {}
+        self.tasks: Dict[str, Task] = {}
         self.running_tasks: Dict[str, Future] = {}
-        self.completed_tasks: Dict[str, BaseTask] = {}
+        self.completed_tasks: Dict[str, Task] = {}
 
         # Engine-Status
         self.is_running = False
@@ -229,8 +242,8 @@ class TaskEngine:
         self.loop: Optional[asyncio.AbstractEventLoop] = None
 
         # Callbacks
-        self.on_task_completed: Optional[Callable[[BaseTask], None]] = None
-        self.on_task_failed: Optional[Callable[[BaseTask, str], None]] = None
+        self.on_task_completed: Optional[Callable[[Task], None]] = None
+        self.on_task_failed: Optional[Callable[[Task, str], None]] = None
 
         # Logging
         self.logger = logging.getLogger(f"{__name__}.TaskEngine")
@@ -285,7 +298,7 @@ class TaskEngine:
 
         self.logger.info("Task Engine gestoppt")
 
-    async def submit_task(self, task: BaseTask, task_input: TaskInput) -> str:
+    async def submit_task(self, task: Task, task_input: TaskInput) -> str:
         """
         Fügt einen Task zur Warteschlange hinzu.
 
@@ -321,7 +334,9 @@ class TaskEngine:
             return task.task_id
 
         except Full:
-            self.logger.error(f"Queue voll - Task {task.task_id} kann nicht hinzugefügt werden")
+            self.logger.error(
+                f"Queue voll - Task {task.task_id} kann nicht hinzugefügt werden"
+            )
             raise RuntimeError(f"Task Queue ist voll (Größe: {self.queue_size})")
         except Exception as e:
             self.logger.error(f"Fehler beim Hinzufügen von Task {task.task_id}: {e}")
@@ -414,7 +429,7 @@ class TaskEngine:
                 self.logger.error(f"Fehler im Worker-Loop: {e}")
                 await asyncio.sleep(1)
 
-    async def _execute_task(self, task: BaseTask) -> None:
+    async def _execute_task(self, task: Task) -> None:
         """Führt einen einzelnen Task aus."""
         try:
             # Task als laufend markieren
@@ -477,11 +492,13 @@ class TaskEngine:
                 try:
                     self.on_task_failed(task, error_msg)
                 except Exception as callback_error:
-                    self.logger.error(f"Fehler im on_task_failed Callback: {callback_error}")
+                    self.logger.error(
+                        f"Fehler im on_task_failed Callback: {callback_error}"
+                    )
 
             self.logger.error(f"Task {task.task_id} fehlgeschlagen: {error_msg}")
 
-    def _run_task_sync(self, task: BaseTask, task_input: TaskInput) -> TaskOutput:
+    def _run_task_sync(self, task: Task, task_input: TaskInput) -> TaskOutput:
         """
         Führt einen Task synchron aus (wird im Threadpool ausgeführt).
 
@@ -511,8 +528,8 @@ class TaskEngine:
 
     def set_callbacks(
         self,
-        on_task_completed: Optional[Callable[[BaseTask, TaskOutput], None]] = None,
-        on_task_failed: Optional[Callable[[BaseTask, str], None]] = None,
+        on_task_completed: Optional[Callable[[Task, TaskOutput], None]] = None,
+        on_task_failed: Optional[Callable[[Task, str], None]] = None,
     ) -> None:
         """
         Setzt Callback-Funktionen für Task-Ereignisse.

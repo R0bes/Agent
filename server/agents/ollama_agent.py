@@ -125,7 +125,9 @@ class OllamaAgent(BaseAgent):
                 messages = []
                 for msg in context:
                     if "role" in msg and "content" in msg:
-                        messages.append({"role": msg["role"], "content": msg["content"]})
+                        messages.append(
+                            {"role": msg["role"], "content": msg["content"]}
+                        )
 
                 if messages:
                     generate_params["messages"] = messages
@@ -139,7 +141,8 @@ class OllamaAgent(BaseAgent):
                 if response.status != 200:
                     error_text = await response.text()
                     raise AgentError(
-                        f"Ollama API Fehler: {response.status} - {error_text}", self.name
+                        f"Ollama API Fehler: {response.status} - {error_text}",
+                        self.name,
                     )
 
                 response_data = await response.json()
@@ -224,7 +227,9 @@ class OllamaAgent(BaseAgent):
                 messages = []
                 for msg in context:
                     if "role" in msg and "content" in msg:
-                        messages.append({"role": msg["role"], "content": msg["content"]})
+                        messages.append(
+                            {"role": msg["role"], "content": msg["content"]}
+                        )
 
                 if messages:
                     generate_params["messages"] = messages
@@ -238,7 +243,8 @@ class OllamaAgent(BaseAgent):
                 if response.status != 200:
                     error_text = await response.text()
                     raise AgentError(
-                        f"Ollama API Fehler: {response.status} - {error_text}", self.name
+                        f"Ollama API Fehler: {response.status} - {error_text}",
+                        self.name,
                     )
 
                 # Stream verarbeiten
@@ -255,7 +261,10 @@ class OllamaAgent(BaseAgent):
                         done = chunk_data.get("done", False)
 
                         usage = None
-                        if "prompt_eval_count" in chunk_data or "eval_count" in chunk_data:
+                        if (
+                            "prompt_eval_count" in chunk_data
+                            or "eval_count" in chunk_data
+                        ):
                             usage = {
                                 "prompt_tokens": chunk_data.get("prompt_eval_count", 0),
                                 "completion_tokens": chunk_data.get("eval_count", 0),
@@ -321,7 +330,11 @@ class OllamaAgent(BaseAgent):
                     }
 
         except Exception as e:
-            return {"status": "unhealthy", "error": str(e), "timestamp": datetime.now().isoformat()}
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat(),
+            }
 
     async def list_models(self) -> List[Dict[str, Any]]:
         """
@@ -367,7 +380,9 @@ class OllamaAgent(BaseAgent):
                     return {"status": "success", "model": model_name}
                 else:
                     error_text = await response.text()
-                    raise AgentError(f"Fehler beim Laden des Modells: {error_text}", self.name)
+                    raise AgentError(
+                        f"Fehler beim Laden des Modells: {error_text}", self.name
+                    )
 
         except Exception as e:
             raise AgentError(f"Fehler beim Laden des Modells: {e}", self.name, e)

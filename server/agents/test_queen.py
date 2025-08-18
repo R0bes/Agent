@@ -3,6 +3,7 @@ Tests für den Queen-Agenten.
 """
 
 from .queen_agent import QueenAgent, QueenConfig
+from .base_agent import StreamChunk
 
 
 def test_queen_config():
@@ -10,7 +11,10 @@ def test_queen_config():
     print("🧪 Teste QueenConfig...")
 
     config = QueenConfig(
-        name="test-queen", model="llama2", response_style="formal", conversation_memory_size=15
+        name="test-queen",
+        model="llama2",
+        response_style="formal",
+        conversation_memory_size=15,
     )
 
     assert config.name == "test-queen"
@@ -22,32 +26,33 @@ def test_queen_config():
     print("✅ QueenConfig funktioniert korrekt")
 
 
-def test_singleton_creation():
-    """Testet die Singleton-Implementierung."""
-    print("🧪 Teste Singleton-Implementierung...")
+def test_queen_creation():
+    """Testet die Queen-Erstellung."""
+    print("🧪 Teste Queen-Erstellung...")
 
     # Erste Instanz
     queen1 = QueenAgent()
     queen1_id = id(queen1)
 
-    # Zweite Instanz (sollte dieselbe sein)
+    # Zweite Instanz (sollte eine neue sein)
     queen2 = QueenAgent()
     queen2_id = id(queen2)
 
-    # Dritte Instanz mit anderer Konfiguration (sollte ignoriert werden)
+    # Dritte Instanz mit anderer Konfiguration
     config = QueenConfig(name="different-queen", model="codellama")
     queen3 = QueenAgent(config)
     queen3_id = id(queen3)
 
-    # Alle IDs sollten identisch sein
-    assert queen1_id == queen2_id == queen3_id
-    assert queen1 is queen2 is queen3
+    # Alle IDs sollten unterschiedlich sein (kein Singleton)
+    assert queen1_id != queen2_id
+    assert queen2_id != queen3_id
+    assert queen1_id != queen3_id
 
-    # Konfiguration sollte die erste bleiben (Standard-Werte)
+    # Konfiguration sollte korrekt gesetzt werden
     assert queen1.name == "queen"  # Standard-Name
-    assert queen1.model == "llama2"  # Standard-Modell
+    assert queen3.name == "different-queen"  # Angepasster Name
 
-    print("✅ Singleton-Implementierung funktioniert korrekt")
+    print("✅ Queen-Erstellung funktioniert korrekt")
 
 
 async def test_queen_methods():
@@ -145,18 +150,24 @@ async def test_factory_function():
     print("🧪 Teste Factory-Funktion...")
 
     # Queen über Factory-Funktion abrufen
-    queen1 = await QueenAgent.get_queen_instance()
-    queen2 = await QueenAgent.get_queen_instance()
+    from queen_agent import get_queen_instance
 
-    # Sollte dieselbe Instanz sein
-    assert queen1 is queen2
+    queen1 = await get_queen_instance()
+    queen2 = await get_queen_instance()
+
+    # Sollte funktionierende Instanzen sein
+    assert queen1 is not None
+    assert queen2 is not None
+    assert isinstance(queen1, QueenAgent)
+    assert isinstance(queen2, QueenAgent)
 
     # Mit Konfiguration
     config = QueenConfig(name="factory-queen", model="llama2")
-    queen3 = await QueenAgent.get_queen_instance(config)
+    queen3 = await get_queen_instance(config)
 
-    # Sollte immer noch dieselbe Instanz sein
-    assert queen1 is queen3
+    # Sollte auch funktionieren
+    assert queen3 is not None
+    assert isinstance(queen3, QueenAgent)
 
     print("✅ Factory-Funktion funktioniert korrekt")
 
@@ -212,7 +223,7 @@ def run_sync_tests():
 
     try:
         test_queen_config()
-        test_singleton_creation()
+        test_queen_creation()
         print("\n✅ Alle synchronen Tests erfolgreich!")
         return True
 
@@ -266,4 +277,6 @@ async def main():
 
 if __name__ == "__main__":
     # Queen-Tests ausführen
-    unittest.main()
+    import asyncio
+
+    asyncio.run(main())

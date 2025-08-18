@@ -3,7 +3,6 @@ Beispiel für die Verwendung des Queen-Agenten.
 """
 
 import asyncio
-import logging
 from .ollama_agent import OllamaAgent
 
 
@@ -18,8 +17,9 @@ async def demonstrate_chat_functionality():
         # Konversation starten
         print("🎭 Starte Konversation...")
         welcome = await queen.start_conversation(
-            user_id="demo_user", conversation_id="demo_conv_1",
-            initial_message="Hallo Queen!"
+            user_id="demo_user",
+            conversation_id="demo_conv_1",
+            initial_message="Hallo Queen!",
         )
         print(f"Queen: {welcome['message']}")
 
@@ -39,8 +39,9 @@ async def demonstrate_chat_functionality():
 
             try:
                 response = await queen.chat_response(
-                    user_message=question, user_id="demo_user",
-                    conversation_id="demo_conv_1"
+                    user_message=question,
+                    user_id="demo_user",
+                    conversation_id="demo_conv_1",
                 )
 
                 print(f"Queen: {response['response']}")
@@ -118,8 +119,9 @@ async def demonstrate_memory_functionality():
 
             try:
                 response = await queen.chat_response(
-                    user_message=message, user_id="memory_test_user",
-                    conversation_id="memory_conv_1"
+                    user_message=message,
+                    user_id="memory_test_user",
+                    conversation_id="memory_conv_1",
                 )
 
                 print(f"Queen: {response['response']}")
@@ -159,7 +161,9 @@ async def demonstrate_streaming():
         received_chunks = []
 
         async for chunk in queen.stream_chat_response(
-            user_message=question, user_id="stream_user", conversation_id="stream_conv_1"
+            user_message=question,
+            user_id="stream_user",
+            conversation_id="stream_conv_1",
         ):
             print(chunk.content, end="", flush=True)
             received_chunks.append(chunk)
@@ -169,10 +173,14 @@ async def demonstrate_streaming():
 
         print("\n\n📊 Streaming abgeschlossen:")
         print(f"  Empfangene Chunks: {len(received_chunks)}")
-        print(f"  Gesamtinhalt: {sum(len(chunk.content) for chunk in received_chunks)} Zeichen")
+        print(
+            f"  Gesamtinhalt: {sum(len(chunk.content) for chunk in received_chunks)} Zeichen"
+        )
 
         # Konversation beenden
-        farewell = await queen.end_conversation(user_id="stream_user", conversation_id="stream_conv_1")
+        farewell = await queen.end_conversation(
+            user_id="stream_user", conversation_id="stream_conv_1"
+        )
         print(f"Queen: {farewell['message']}")
 
     except Exception as e:
@@ -212,10 +220,14 @@ async def demonstrate_websocket_streaming():
 
         print("\n\n📊 WebSocket-Streaming abgeschlossen:")
         print(f"  Empfangene Chunks: {len(received_chunks)}")
-        print(f"  Gesamtinhalt: {sum(len(chunk.content) for chunk in received_chunks)} Zeichen")
+        print(
+            f"  Gesamtinhalt: {sum(len(chunk.content) for chunk in received_chunks)} Zeichen"
+        )
 
         # Konversation beenden
-        farewell = await queen.end_conversation(user_id="ws_user", conversation_id="ws_conv_1")
+        farewell = await queen.end_conversation(
+            user_id="ws_user", conversation_id="ws_conv_1"
+        )
         print(f"Queen: {farewell['message']}")
 
     except Exception as e:

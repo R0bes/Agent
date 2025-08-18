@@ -2,19 +2,16 @@
 Message Tasks für die Verarbeitung von Chat-Nachrichten.
 """
 
-import asyncio
 import logging
 import time
-from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from .base import BaseTask, TaskInput, TaskOutput, TaskStatus, TaskPriority
+from .base import Task, TaskInput, TaskOutput, TaskPriority
 from .engine import MessageEvent
-from ..agents.queen_agent import get_queen_instance
-from ..core import ChatMessage
+from server.agents.queen_agent import get_queen_instance
 
 
-class ChatMessageTask(BaseTask):
+class ChatMessageTask(Task):
     """
     Task zur Verarbeitung von Chat-Nachrichten.
     Verwendet die Queen für echte Chat-Antworten.
@@ -33,7 +30,9 @@ class ChatMessageTask(BaseTask):
     async def execute(self, task_input: TaskInput) -> TaskOutput:
         """Führt die Chat-Nachrichtenverarbeitung aus."""
         try:
-            self.logger.info(f"Verarbeite Chat-Nachricht: {self.message_event.event_id}")
+            self.logger.info(
+                f"Verarbeite Chat-Nachricht: {self.message_event.event_id}"
+            )
 
             # Nachrichteninhalt extrahieren
             content = self.message_event.message_data.get("content", "")
@@ -59,7 +58,8 @@ class ChatMessageTask(BaseTask):
                 "client_id": client_id,
                 "original_message": content,
                 "timestamp": datetime.now().isoformat(),
-                "processing_time": time.time() - self.message_event.timestamp.timestamp(),
+                "processing_time": time.time()
+                - self.message_event.timestamp.timestamp(),
             }
 
             self.logger.info(
@@ -75,7 +75,7 @@ class ChatMessageTask(BaseTask):
             return TaskOutput(result=None, success=False, error=error_msg)
 
 
-class PingMessageTask(BaseTask):
+class PingMessageTask(Task):
     """
     Task zur Verarbeitung von Ping-Nachrichten.
     Generiert Pong-Antworten für Ping-Nachrichten.
@@ -94,7 +94,9 @@ class PingMessageTask(BaseTask):
     async def execute(self, task_input: TaskInput) -> TaskOutput:
         """Führt die Ping-Nachrichtenverarbeitung aus."""
         try:
-            self.logger.debug(f"Verarbeite Ping-Nachricht: {self.message_event.event_id}")
+            self.logger.debug(
+                f"Verarbeite Ping-Nachricht: {self.message_event.event_id}"
+            )
 
             client_id = self.message_event.client_id
 
@@ -119,7 +121,7 @@ class PingMessageTask(BaseTask):
             return TaskOutput(result=None, success=False, error=error_msg)
 
 
-class StatusMessageTask(BaseTask):
+class StatusMessageTask(Task):
     """
     Task zur Verarbeitung von Status-Anfragen.
     Generiert Status-Antworten mit System-Informationen.
@@ -138,7 +140,9 @@ class StatusMessageTask(BaseTask):
     async def execute(self, task_input: TaskInput) -> TaskOutput:
         """Führt die Status-Nachrichtenverarbeitung aus."""
         try:
-            self.logger.debug(f"Verarbeite Status-Anfrage: {self.message_event.event_id}")
+            self.logger.debug(
+                f"Verarbeite Status-Anfrage: {self.message_event.event_id}"
+            )
 
             client_id = self.message_event.client_id
 
@@ -152,7 +156,8 @@ class StatusMessageTask(BaseTask):
                 "active_connections": 0,  # Wird von der API gesetzt
                 "active_clients": 0,  # Wird von der API gesetzt
                 "queue_size": 0,  # Wird von der Task Engine gesetzt
-                "processing_time": time.time() - self.message_event.timestamp.timestamp(),
+                "processing_time": time.time()
+                - self.message_event.timestamp.timestamp(),
             }
 
             self.logger.debug(
@@ -174,7 +179,7 @@ class MessageTaskFactory:
     """
 
     @staticmethod
-    def create_task(message_event: MessageEvent) -> BaseTask:
+    def create_task(message_event: MessageEvent) -> Task:
         """
         Erstellt einen Task basierend auf dem Nachrichtentyp.
 
@@ -195,6 +200,3 @@ class MessageTaskFactory:
         else:
             # Fallback für unbekannte Nachrichtentypen
             return ChatMessageTask(message_event)
-
-
-

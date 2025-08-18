@@ -6,8 +6,7 @@ import logging
 from typing import Dict, Any
 from datetime import datetime
 
-from .base import Task, TaskStatus
-from .engine import TaskEngine
+from .base import Task
 
 
 class ConsoleWorker:
@@ -92,7 +91,7 @@ class ConsoleWorker:
             print(f"Antwort: {result.get('content', 'N/A')}")
             print(f"Verarbeitungszeit: {result.get('processing_time', 'N/A'):.3f}s")
 
-        print(f"Status: ✅ Erfolgreich")
+        print("Status: ✅ Erfolgreich")
         print("=" * 60)
 
     def _print_message_task_error(self, task: Task, error: str) -> None:
@@ -117,7 +116,7 @@ class ConsoleWorker:
         print(f"Name: {task.name}")
         print(f"Beschreibung: {task.description}")
         print(f"Priorität: {task.priority.name}")
-        print(f"Status: ✅ Erfolgreich")
+        print("Status: ✅ Erfolgreich")
         print("=" * 60)
 
     def _print_generic_task_error(self, task: Task, error: str) -> None:
@@ -143,14 +142,18 @@ class ConsoleWorker:
         print(f"Andere Tasks: {self.stats['other_tasks']}")
 
         if self.stats["total_tasks"] > 0:
-            success_rate = (self.stats["completed_tasks"] / self.stats["total_tasks"]) * 100
+            success_rate = (
+                self.stats["completed_tasks"] / self.stats["total_tasks"]
+            ) * 100
             print(f"Erfolgsrate: {success_rate:.1f}%")
 
         print("=" * 60)
 
     def print_queue_status(self, queue_size: int, running_tasks: int) -> None:
         """Gibt den aktuellen Queue-Status auf der Konsole aus."""
-        print(f"\n🔄 Queue Status: {queue_size} Tasks in Queue, {running_tasks} laufend")
+        print(
+            f"\n🔄 Queue Status: {queue_size} Tasks in Queue, {running_tasks} laufend"
+        )
 
     def print_system_status(self, status_data: Dict[str, Any]) -> None:
         """Gibt System-Status-Informationen auf der Konsole aus."""
@@ -160,7 +163,9 @@ class ConsoleWorker:
 
         if "task_engine" in status_data:
             engine_stats = status_data["task_engine"]
-            print(f"Task Engine: {'🟢 Läuft' if engine_stats.get('is_running') else '🔴 Gestoppt'}")
+            print(
+                f"Task Engine: {'🟢 Läuft' if engine_stats.get('is_running') else '🔴 Gestoppt'}"
+            )
             print(
                 f"Worker: {engine_stats.get('running_tasks', 0)}/{engine_stats.get('max_workers', 0)}"
             )

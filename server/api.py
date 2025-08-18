@@ -4,16 +4,18 @@ FastAPI-Anwendung für das Chat-Backend.
 
 import json
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Dict, Any, Optional, AsyncIterator
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from .core import manager
-from .tasks.engine import TaskEngine
-from .tasks.console_worker import ConsoleWorker
-from .agents.queen_agent import get_queen_instance
+from core import manager
+from tasks.engine import TaskEngine
+from tasks.console_worker import ConsoleWorker
+from agents.queen_agent import get_queen_instance
+from tasks.message_tasks import MessageTaskFactory
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,9 @@ async def lifespan(app: FastAPI):
     app.state.task_engine.event_manager.register_message_handler(
         "message", handle_chat_message_event
     )
-    app.state.task_engine.event_manager.register_message_handler("ping", handle_ping_message_event)
+    app.state.task_engine.event_manager.register_message_handler(
+        "ping", handle_ping_message_event
+    )
     app.state.task_engine.event_manager.register_message_handler(
         "status", handle_status_message_event
     )
@@ -61,7 +65,9 @@ async def lifespan(app: FastAPI):
     finally:
         # Shutdown (guarded in case startup failed halfway)
         task_engine: Optional[TaskEngine] = getattr(app.state, "task_engine", None)
-        console_worker: Optional[ConsoleWorker] = getattr(app.state, "console_worker", None)
+        console_worker: Optional[ConsoleWorker] = getattr(
+            app.state, "console_worker", None
+        )
 
         if task_engine:
             await task_engine.stop()
@@ -181,7 +187,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             elif message_type == "status":
                 await handle_status_message(websocket, client_id, message_data)
             else:
-                await send_error_response(websocket, f"Unknown message type: {message_type}")
+                await send_error_response(
+                    websocket, f"Unknown message type: {message_type}"
+                )
 
     except WebSocketDisconnect:
         manager.disconnect(client_id)
@@ -217,7 +225,9 @@ async def handle_normal_chat_message(
         logger.info(f"Sent normal chat response to client {client_id}")
 
     except Exception as e:
-        logger.error(f"Error handling normal chat for client {client_id}: {e}", exc_info=True)
+        logger.error(
+            f"Error handling normal chat for client {client_id}: {e}", exc_info=True
+        )
         await send_error_response(websocket, f"Processing error: {e}")
 
 
@@ -277,11 +287,15 @@ async def handle_streaming_chat_message(
             await websocket.send_text(json.dumps(normal_message))
 
     except Exception as e:
-        logger.error(f"Error in streaming chat for client {client_id}: {e}", exc_info=True)
+        logger.error(
+            f"Error in streaming chat for client {client_id}: {e}", exc_info=True
+        )
         await send_error_response(websocket, f"Processing error: {e}")
 
 
-async def handle_ping_message(websocket: WebSocket, client_id: str, message_data: Dict[str, Any]):
+async def handle_ping_message(
+    websocket: WebSocket, client_id: str, message_data: Dict[str, Any]
+):
     """Handle ping messages."""
     try:
         await websocket.send_text(
@@ -291,7 +305,9 @@ async def handle_ping_message(websocket: WebSocket, client_id: str, message_data
         logger.error(f"Ping handler error for {client_id}: {e}", exc_info=True)
 
 
-async def handle_status_message(websocket: WebSocket, client_id: str, message_data: Dict[str, Any]):
+async def handle_status_message(
+    websocket: WebSocket, client_id: str, message_data: Dict[str, Any]
+):
     """Handle status messages."""
     try:
         await websocket.send_text(
@@ -334,7 +350,9 @@ def _engine_submit_from_event(task_input_event):
     try:
         task = MessageTaskFactory.create_task(task_input_event)
         if _app_ref is None:
-            raise RuntimeError("App reference not set; did you build the app via create_app()?")
+            raise RuntimeError(
+                "App reference not set; did you build the app via create_app()?"
+            )
 
         engine: TaskEngine = _app_ref.state.task_engine
         asyncio.create_task(engine.submit_task(task, task.input))

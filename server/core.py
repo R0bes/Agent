@@ -64,7 +64,9 @@ class ConnectionManager:
             self.connection_count += 1
 
         self.active_connections[client_id] = websocket
-        logger.info(f"Client {client_id} connected. Total connections: {self.connection_count}")
+        logger.info(
+            f"Client {client_id} connected. Total connections: {self.connection_count}"
+        )
 
         # Willkommensnachricht senden
         try:

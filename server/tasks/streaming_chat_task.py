@@ -2,19 +2,17 @@
 Streaming Chat Task für die Verarbeitung von Streaming-Chat-Nachrichten.
 """
 
-import asyncio
 import logging
 import time
 import json
-from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from .base import BaseTask, TaskInput, TaskOutput, TaskStatus, TaskPriority
+from .base import Task, TaskInput, TaskOutput, TaskPriority
 from .engine import MessageEvent
-from ..agents.queen_agent import get_queen_instance
+from server.agents.queen_agent import get_queen_instance
 
 
-class StreamingChatMessageTask(BaseTask):
+class StreamingChatMessageTask(Task):
     """
     Task zur Verarbeitung von Chat-Nachrichten mit Streaming.
     Verwendet die Queen's Streaming-Funktionalität für echte Token-Streams.
@@ -34,7 +32,9 @@ class StreamingChatMessageTask(BaseTask):
     async def execute(self, task_input: TaskInput) -> TaskOutput:
         """Führt die Streaming-Chat-Nachrichtenverarbeitung aus."""
         try:
-            self.logger.info(f"Verarbeite Streaming-Chat-Nachricht: {self.message_event.event_id}")
+            self.logger.info(
+                f"Verarbeite Streaming-Chat-Nachricht: {self.message_event.event_id}"
+            )
 
             # Nachrichteninhalt extrahieren
             content = self.message_event.message_data.get("content", "")
@@ -58,7 +58,9 @@ class StreamingChatMessageTask(BaseTask):
                 # Streaming-Antwort von der Queen generieren
                 try:
                     await queen.chat_response_stream_websocket(
-                        user_message=content, user_id=client_id, conversation_id=stream_id
+                        user_message=content,
+                        user_id=client_id,
+                        conversation_id=stream_id,
                     )
 
                     # Streaming-Ende-Nachricht senden
@@ -76,7 +78,9 @@ class StreamingChatMessageTask(BaseTask):
                     self.logger.error(f"Streaming-Fehler: {stream_error}")
                     # Fallback: Normale Antwort senden
                     response = await queen.chat_response(
-                        user_message=content, user_id=client_id, conversation_id=stream_id
+                        user_message=content,
+                        user_id=client_id,
+                        conversation_id=stream_id,
                     )
 
                     # Normale Antwort senden
@@ -96,7 +100,8 @@ class StreamingChatMessageTask(BaseTask):
                 "client_id": client_id,
                 "original_message": content,
                 "timestamp": datetime.now().isoformat(),
-                "processing_time": time.time() - self.message_event.timestamp.timestamp(),
+                "processing_time": time.time()
+                - self.message_event.timestamp.timestamp(),
             }
 
             self.logger.info(
@@ -106,10 +111,9 @@ class StreamingChatMessageTask(BaseTask):
             return TaskOutput(result=result, success=True)
 
         except Exception as e:
-            error_msg = f"Fehler bei der Verarbeitung der Streaming-Chat-Nachricht: {str(e)}"
+            error_msg = (
+                f"Fehler bei der Verarbeitung der Streaming-Chat-Nachricht: {str(e)}"
+            )
             self.logger.error(error_msg)
 
             return TaskOutput(result=None, success=False, error=error_msg)
-
-
-

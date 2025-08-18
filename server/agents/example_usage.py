@@ -4,6 +4,7 @@ Beispiel für die Verwendung der Agenten.
 
 import asyncio
 import logging
+from .base_agent import BaseAgent
 from .ollama_agent import OllamaAgent, OllamaConfig
 
 
@@ -36,7 +37,9 @@ async def example_basic_usage():
             # Verfügbare Modelle auflisten
             try:
                 models = await agent.list_models()
-                print(f"Verfügbare Modelle: {[m.get('name', 'unknown') for m in models]}")
+                print(
+                    f"Verfügbare Modelle: {[m.get('name', 'unknown') for m in models]}"
+                )
             except Exception as e:
                 print(f"Fehler beim Abrufen der Modelle: {e}")
 
@@ -182,7 +185,8 @@ async def main():
 if __name__ == "__main__":
     # Logging konfigurieren
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     # Beispiele ausführen

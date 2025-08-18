@@ -30,9 +30,13 @@ class UserMessage:
     payload: Any
 
     @classmethod
-    def new(cls, session_id: str, payload: Any, type_: str = "user.input") -> "UserMessage":
+    def new(
+        cls, session_id: str, payload: Any, type_: str = "user.input"
+    ) -> "UserMessage":
         """Create a new UserMessage with auto-generated id and timestamp."""
-        return cls(id=uid(), session_id=session_id, ts=iso(), type=type_, payload=payload)
+        return cls(
+            id=uid(), session_id=session_id, ts=iso(), type=type_, payload=payload
+        )
 
 
 @dataclass

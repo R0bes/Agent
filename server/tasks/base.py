@@ -69,7 +69,9 @@ class TaskInput:
 class TaskOutput:
     """Basisklasse für Task-Ausgabedaten."""
 
-    def __init__(self, result: Any = None, success: bool = True, error: Optional[str] = None):
+    def __init__(
+        self, result: Any = None, success: bool = True, error: Optional[str] = None
+    ):
         """
         Initialisiert Task-Output.
 
@@ -111,7 +113,7 @@ class TaskOutput:
         return f"TaskOutput(id={self.output_id}, status={status})"
 
 
-class BaseTask(ABC):
+class Task(ABC):
     """
     Abstrakte Basisklasse für alle Tasks.
 
@@ -214,7 +216,9 @@ class BaseTask(ABC):
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
             "retry_count": self.retry_count,
             "max_retries": self.max_retries,
             "error": self.error,
@@ -224,7 +228,7 @@ class BaseTask(ABC):
     def __str__(self) -> str:
         return f"Task(id={self.task_id}, priority={self.priority.name}, status={self.status.value})"
 
-    def __lt__(self, other: "BaseTask") -> bool:
+    def __lt__(self, other: "Task") -> bool:
         """Vergleicht Tasks basierend auf Priorität (höhere Priorität = niedrigerer Wert)."""
         if self.priority.value != other.priority.value:
             return self.priority.value > other.priority.value

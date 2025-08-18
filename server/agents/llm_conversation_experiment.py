@@ -4,7 +4,6 @@ Experiment mit LLM-Konversationen.
 
 import asyncio
 import logging
-import random
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -39,7 +38,11 @@ class ConversationAgent(OllamaAgent):
         """
         # Konversationsverlauf aktualisieren
         self.conversation_history.append(
-            {"from": other_agent_name, "message": message, "timestamp": datetime.now().isoformat()}
+            {
+                "from": other_agent_name,
+                "message": message,
+                "timestamp": datetime.now().isoformat(),
+            }
         )
 
         # Prompt für die Antwort erstellen
@@ -68,7 +71,11 @@ class ConversationAgent(OllamaAgent):
         except Exception as e:
             error_msg = f"Entschuldigung, ich hatte einen Fehler: {str(e)}"
             self.conversation_history.append(
-                {"from": self.name, "message": error_msg, "timestamp": datetime.now().isoformat()}
+                {
+                    "from": self.name,
+                    "message": error_msg,
+                    "timestamp": datetime.now().isoformat(),
+                }
             )
             return error_msg
 
@@ -117,7 +124,9 @@ class LLMConversationExperiment:
             print(f"❌ Fehler beim Initialisieren der Agenten: {e}")
             raise
 
-    async def start_conversation(self, initial_topic: str = "Was ist der Sinn des Lebens?"):
+    async def start_conversation(
+        self, initial_topic: str = "Was ist der Sinn des Lebens?"
+    ):
         """
         Startet eine Konversation zwischen den beiden Agenten.
 
@@ -127,7 +136,9 @@ class LLMConversationExperiment:
         if not self.agent1 or not self.agent2:
             raise ValueError("Agenten müssen zuerst initialisiert werden!")
 
-        print(f"\n🎭 Starte Konversation zwischen {self.agent1.name} und {self.agent2.name}")
+        print(
+            f"\n🎭 Starte Konversation zwischen {self.agent1.name} und {self.agent2.name}"
+        )
         print(f"📝 Thema: {initial_topic}")
         print("=" * 80)
 
@@ -256,7 +267,8 @@ async def simple_conversation():
 if __name__ == "__main__":
     # Logging konfigurieren
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     # Einfache Konversation ausführen
