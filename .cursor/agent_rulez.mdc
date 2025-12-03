@@ -1,0 +1,36 @@
+---
+alwaysApply: true
+---
+
+# Agent Rules
+
+1. **Read documentation**
+   - Always read relevant documentation before implementing features
+   - Check existing code examples and patterns in the codebase
+   - Understand dependencies and their APIs before using them
+   - Review error messages and stack traces carefully
+
+2. **Validate and test results**
+   - Test implementations before presenting them
+   - Verify that code works as expected
+   - Check for edge cases and error handling
+   - Run linters and fix any introduced errors
+   - Validate that solutions meet the requirements
+
+3. **YAGNI (You Aren't Gonna Need It)**
+   - Don't implement features or functionality that isn't explicitly requested
+   - Avoid premature optimization
+   - Keep solutions simple and focused on current requirements
+   - Add complexity only when there's a clear, immediate need
+
+4. **DRY (Don't Repeat Yourself)**
+   - Reuse existing code and patterns when possible
+   - Extract common functionality into reusable functions/components
+   - Avoid duplicating logic across multiple places
+   - Refactor duplicated code when encountered
+
+5. **Code quality and maintainability**
+   - Write clean, readable code with meaningful names
+   - Follow existing code style and conventions in the project
+   - Add comments for complex logic, but prefer self-documenting code
+   - Ensure proper error handling and edge case coverage
