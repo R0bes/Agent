@@ -12,7 +12,9 @@ export default defineConfig({
       },
       "/ws": {
         target: "ws://localhost:3001",
-        ws: true
+        ws: true,
+        changeOrigin: false,
+        secure: false
       }
     }
   }

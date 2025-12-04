@@ -1,7 +1,17 @@
+// Note: EventBus does not log via logger to avoid circular logging
+// Logs are published via event bus, which the LogManager handles
+
 export type EventType =
   | "message_created"
   | "job_updated"
-  | "memory_updated";
+  | "memory_updated"
+  | "source_message"
+  | "log_trace"
+  | "log_debug"
+  | "log_info"
+  | "log_warn"
+  | "log_error"
+  | "log_fatal";
 
 export interface BaseEvent<TType extends EventType = EventType, TPayload = any> {
   type: TType;
@@ -26,9 +36,33 @@ class EventBus {
 
   async emit(event: BaseEvent) {
     const handlers = this.handlers.get(event.type);
-    if (!handlers) return;
+
+    if (!handlers || handlers.size === 0) {
+      return;
+    }
+
+    const startTime = Date.now();
+    let successCount = 0;
+    let errorCount = 0;
+
     for (const handler of handlers) {
-      await handler(event);
+      try {
+        await handler(event);
+        successCount++;
+      } catch (err) {
+        errorCount++;
+        // Only log non-log events to avoid circular logging
+        if (!event.type.startsWith("log_")) {
+          // Use console directly to avoid circular dependency
+          console.error(`EventBus: Handler error for ${event.type}:`, err);
+        }
+      }
+    }
+
+    // Only log non-log events to avoid circular logging
+    if (!event.type.startsWith("log_") && process.env.DEBUG_EVENTBUS === "true") {
+      const duration = Date.now() - startTime;
+      console.debug(`EventBus: ${event.type} processed in ${duration}ms (${successCount} success, ${errorCount} errors)`);
     }
   }
 }

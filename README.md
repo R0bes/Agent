@@ -2,35 +2,40 @@
 
 This is a minimal monorepo-style skeleton for your personal AI agent system.
 
-- **Backend**: Node 20+, TypeScript, Fastify, WebSockets
+- **Backend**: Node 20+, TypeScript (ES Modules), Fastify, WebSockets, tsx
 - **Frontend**: Vite + React + TypeScript, simple CSS layout
 - **Architecture**:
   - Persona core
-  - Event bus
-  - Basic chat API
-  - WebSocket event stream for new messages
+  - Event bus (backend & frontend)
+  - Chat API with WebSocket streaming
+  - Jobs API for background tasks
+  - Memory API for user context
+  - Real-time UI updates via WebSocket
 
 ## Structure
 
-- `backend/` – Fastify server, REST + WebSocket, persona stub
-- `frontend/` – Vite + React SPA that talks to the backend
+- `backend/` – Fastify server, REST + WebSocket, persona stub, job & memory stores
+- `frontend/` – Vite + React SPA with chat, jobs panel, and memory panel
 
 ## Quickstart
 
 ### Option 1: Setup Script (Recommended)
 
 **Windows (PowerShell):**
+
 ```powershell
 .\setup.ps1
 ```
 
 **Linux/Mac:**
+
 ```bash
 chmod +x setup.sh
 ./setup.sh
 ```
 
 **npm (all platforms):**
+
 ```bash
 npm run setup
 ```

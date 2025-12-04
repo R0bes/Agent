@@ -1,4 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import { emit } from "../eventBus";
+import { useWebSocket } from "../contexts/WebSocketContext";
+import { IconButton } from "./IconButton";
+import { SendIcon } from "./Icons";
 
 type MessageRole = "user" | "assistant";
 
@@ -9,61 +13,26 @@ interface Message {
   createdAt: string;
 }
 
-const WS_URL =
-  (location.protocol === "https:" ? "wss://" : "ws://") +
-  location.host +
-  "/ws";
-
 export const ChatView: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
-  const [status, setStatus] = useState<"disconnected" | "connecting" | "connected">(
-    "disconnected"
-  );
+  const { status, ws } = useWebSocket();
   const listRef = useRef<HTMLDivElement | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
   const conversationId = "main";
   const userId = "user-123";
 
+  // Listen to WebSocket messages from context
   useEffect(() => {
-    connectWebSocket();
-    return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!ws) return;
 
-  function connectWebSocket() {
-    // Clean up existing connection
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    setStatus("connecting");
-    const ws = new WebSocket(WS_URL);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setStatus("connected");
-      reconnectAttemptsRef.current = 0;
-      const el = document.getElementById("persona-status");
-      if (el) el.textContent = "Ready";
-    };
-
-    ws.onmessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
+        
+        if (data.type === "connection_established") {
+          return;
+        }
+        
         if (data.type === "message_created") {
           const m = data.payload as Message;
           setMessages((prev) => [...prev, m]);
@@ -76,27 +45,11 @@ export const ChatView: React.FC = () => {
       }
     };
 
-    ws.onclose = (event) => {
-      setStatus("disconnected");
-      wsRef.current = null;
-      
-      // Only reconnect if it wasn't a manual close
-      if (event.code !== 1000) {
-        // Exponential backoff: 2s, 4s, 8s, max 30s
-        const delay = Math.min(2000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-        reconnectAttemptsRef.current += 1;
-        
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connectWebSocket();
-        }, delay);
-      }
+    ws.addEventListener("message", handleMessage);
+    return () => {
+      ws.removeEventListener("message", handleMessage);
     };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      // Error will trigger onclose, so we don't need to close manually
-    };
-  }
+  }, [ws]);
 
   function scrollToBottom() {
     requestAnimationFrame(() => {
@@ -151,9 +104,6 @@ export const ChatView: React.FC = () => {
             {m.content}
           </div>
         ))}
-        {status !== "connected" && (
-          <div className="system-info">WebSocket: {status}</div>
-        )}
       </div>
       <form className="chat-input" onSubmit={handleSubmit}>
         <textarea
@@ -161,10 +111,27 @@ export const ChatView: React.FC = () => {
           placeholder="Type your message…"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (text.trim()) {
+                handleSubmit(e);
+              }
+            }
+          }}
         />
-        <button type="submit" disabled={!text.trim()}>
-          Send
-        </button>
+        <IconButton
+          icon={<SendIcon />}
+          onClick={() => {
+            if (text.trim()) {
+              const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+              handleSubmit(fakeEvent);
+            }
+          }}
+          disabled={!text.trim()}
+          variant="accent"
+          title="Send message"
+        />
       </form>
     </div>
   );

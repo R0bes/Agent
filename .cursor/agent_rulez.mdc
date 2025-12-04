@@ -34,3 +34,12 @@ alwaysApply: true
    - Follow existing code style and conventions in the project
    - Add comments for complex logic, but prefer self-documenting code
    - Ensure proper error handling and edge case coverage
+
+6. **GUI Design Principles**
+   - **No space waste**: Maximize information density without clutter, use space efficiently
+   - **No redundancy**: Avoid duplicating information or controls, consolidate similar elements
+   - **Beautiful information aggregation**: Group related information logically and visually
+   - **Reuse buttons**: Create reusable button components instead of duplicating button code
+   - **Pictogram-only buttons preferred**: Use icon-only buttons when the action is clear from context, save text for labels when needed
+   - **Playful & expressive design**: Add personality and visual interest while maintaining usability
+   - **Maintain style consistency**: Extend and enhance existing styles rather than creating new conflicting styles

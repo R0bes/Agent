@@ -15,6 +15,8 @@ npm run dev
 ```
 Runs on http://localhost:3001
 
+**Note:** Uses `tsx` for development (ES Module support). The dev script runs `tsx watch src/server.ts` which automatically restarts on file changes.
+
 ### Frontend
 ```
 cd frontend

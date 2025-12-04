@@ -33,14 +33,33 @@ The event bus decouples:
 
 ### Frontend
 - SPA (React) providing:
-  - Chat window
-  - Background job panel (stub)
-  - Memory panel (stub)
+  - Chat window with message history
+  - Background job panel (functional) – shows job status
+  - Memory panel (functional) – shows user memories
 - Receives live updates via WebSocket
+- Frontend event bus for component decoupling
 
 ## Data Flow
+
+### Message Flow
 1. User submits message via `POST /api/chat`
 2. Backend → Persona handles message → generates reply
 3. Persona emits event `message_created`
 4. Event bus forwards to WebSocket broadcaster
-5. Frontend receives event → displays message
+5. Frontend WebSocket receives event → forwards to frontend event bus
+6. Frontend event bus notifies subscribers (ChatView)
+7. UI displays message
+
+### Job Flow
+1. Backend creates/updates job in jobStore
+2. Backend emits `job_updated` event with job list
+3. Event bus forwards to WebSocket
+4. Frontend event bus notifies JobsPanel
+5. UI updates job list
+
+### Memory Flow
+1. Backend adds memory to memoryStore
+2. Backend emits `memory_updated` event with memory list
+3. Event bus forwards to WebSocket
+4. Frontend event bus notifies MemoryPanel
+5. UI updates memory list

@@ -1,0 +1,22 @@
+{
+  "apis": {
+    "spotify": {
+      "clientId": "your-spotify-client-id",
+      "clientSecret": "your-spotify-client-secret",
+      "enabled": false
+    },
+    "lastfm": {
+      "apiKey": "your-lastfm-api-key",
+      "enabled": false
+    },
+    "soundcloud": {
+      "clientId": "your-soundcloud-client-id",
+      "enabled": false
+    }
+  },
+  "eventCrawler": {
+    "enabledClubs": [],
+    "crawlInterval": 60
+  }
+}
+
