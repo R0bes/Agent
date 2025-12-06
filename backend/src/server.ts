@@ -142,32 +142,32 @@ app.get("/health", async (req) => {
 // Register all components
 // Register toolbox first so it can manage other tools
 logInfo("Server: Registering components");
-registerComponent(toolboxComponent);
+await registerComponent(toolboxComponent);
 logDebug("Server: Toolbox component registered");
-registerComponent(llmComponent);
+await registerComponent(llmComponent);
 logDebug("Server: LLM component registered");
-registerComponent(personaComponent);
+await registerComponent(personaComponent);
 logDebug("Server: Persona component registered");
-registerComponent(guiSourceComponent);
+await registerComponent(guiSourceComponent);
 logDebug("Server: GUI source component registered");
-registerComponent(echoToolComponent);
+await registerComponent(echoToolComponent);
 logDebug("Server: Echo tool component registered");
-registerComponent(clockToolComponent);
+await registerComponent(clockToolComponent);
 logDebug("Server: Clock tool component registered");
-registerComponent(websiteSearchToolComponent);
+await registerComponent(websiteSearchToolComponent);
 logDebug("Server: Website search tool component registered");
-registerComponent(schedulerToolComponent);
+await registerComponent(schedulerToolComponent);
 logDebug("Server: Scheduler tool component registered");
-registerComponent(workerManagerToolComponent);
+await registerComponent(workerManagerToolComponent);
 logDebug("Server: Worker manager tool component registered");
-registerComponent(guiControlToolComponent);
+await registerComponent(guiControlToolComponent);
 logDebug("Server: GUI control tool component registered");
 
 // Try to load event crawler component (requires playwright)
 try {
   const eventCrawlerModule = await import("./components/tools/eventCrawler/index.js");
   if (eventCrawlerModule.eventCrawlerComponent) {
-    registerComponent(eventCrawlerModule.eventCrawlerComponent);
+    await registerComponent(eventCrawlerModule.eventCrawlerComponent);
     logDebug("Server: Event crawler tool component registered");
   } else {
     logWarn("Server: Event crawler component not found in module");
@@ -180,7 +180,7 @@ try {
 
 // Register workers
 logInfo("Server: Registering workers");
-registerComponent(memoryCompactionWorkerComponent);
+await registerComponent(memoryCompactionWorkerComponent);
 logDebug("Server: Memory compaction worker component registered");
 // Register workers with engine
 const memoryWorker = memoryCompactionWorkerComponent.worker;
@@ -198,7 +198,7 @@ if (taskWorker) {
 // Register tool execution worker
 try {
   const { toolExecutionWorkerComponent } = await import("./components/worker/toolExecution/index.js");
-  registerComponent(toolExecutionWorkerComponent);
+  await registerComponent(toolExecutionWorkerComponent);
   logDebug("Server: Tool execution worker component registered");
   const toolExecutionWorker = toolExecutionWorkerComponent.worker;
   if (toolExecutionWorker) {
@@ -250,29 +250,39 @@ try {
 
 // Register routes
 logInfo("Server: Registering API routes");
-await registerChatRoutes(app);
-logDebug("Server: Chat routes registered");
-await registerJobsRoutes(app);
-logDebug("Server: Jobs routes registered");
-await registerMemoryRoutes(app);
-logDebug("Server: Memory routes registered");
-await registerMessagesRoutes(app);
-logDebug("Server: Messages routes registered");
-await registerToolsRoutes(app);
-logDebug("Server: Tools routes registered");
-await registerWorkersRoutes(app);
-logDebug("Server: Workers routes registered");
-await registerSchedulerRoutes(app);
-logDebug("Server: Scheduler routes registered");
-await registerLogsRoutes(app);
-logDebug("Server: Logs routes registered");
-await registerConversationRoutes(app);
-logDebug("Server: Conversation routes registered");
-logInfo("Server: All API routes registered");
+try {
+  await registerChatRoutes(app);
+  logDebug("Server: Chat routes registered");
+  await registerJobsRoutes(app);
+  logDebug("Server: Jobs routes registered");
+  await registerMemoryRoutes(app);
+  logDebug("Server: Memory routes registered");
+  await registerMessagesRoutes(app);
+  logDebug("Server: Messages routes registered");
+  await registerToolsRoutes(app);
+  logDebug("Server: Tools routes registered");
+  await registerWorkersRoutes(app);
+  logDebug("Server: Workers routes registered");
+  await registerSchedulerRoutes(app);
+  logDebug("Server: Scheduler routes registered");
+  await registerLogsRoutes(app);
+  logDebug("Server: Logs routes registered");
+  await registerConversationRoutes(app);
+  logDebug("Server: Conversation routes registered");
+  logInfo("Server: All API routes registered");
+} catch (err) {
+  logError("Server: Failed to register API routes", err);
+  throw err; // Re-throw to prevent server from starting with broken routes
+}
 
 // Initialize schedule store
-await scheduleStore.initialize();
-logInfo("Server: Schedule store initialized");
+try {
+  await scheduleStore.initialize();
+  logInfo("Server: Schedule store initialized");
+} catch (err) {
+  logError("Server: Failed to initialize schedule store", err);
+  logWarn("Server: Continuing without schedule store - scheduler features may not work");
+}
 
 // Socket.IO connection handler (must be after app.ready())
 app.ready().then(() => {
@@ -355,26 +365,30 @@ app.ready().then(() => {
   });
   
   logInfo("Server: Socket.IO connection handler ready");
+}).catch((err) => {
+  logError("Server: Failed to setup Socket.IO connection handler", err);
 });
 
 const PORT = Number(process.env.PORT || 3001);
 
-// Start server
-logInfo("Server: Starting backend server", { port: PORT });
-
-app
-  .listen({ port: PORT, host: "0.0.0.0" })
-  .then(() => {
+// Start server - wrap in async IIFE to handle errors properly
+(async () => {
+  try {
+    logInfo("Server: Starting backend server", { port: PORT });
+    
+    await app.listen({ port: PORT, host: "0.0.0.0" });
+    
     logInfo("Server: Backend started successfully", {
       port: PORT,
       url: `http://localhost:${PORT}`
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     logError("Server: Failed to start", err, {
       port: PORT,
       errorCode: (err as any)?.code,
-      errorMessage: err instanceof Error ? err.message : String(err)
+      errorMessage: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined
     });
     process.exit(1);
-  });
+  }
+})();

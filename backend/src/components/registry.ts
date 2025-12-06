@@ -15,7 +15,7 @@ const components = new Map<string, Component>();
 /**
  * Register a component
  */
-export function registerComponent(component: Component): void {
+export async function registerComponent(component: Component): Promise<void> {
   if (components.has(component.id)) {
     logWarn("Component Registry: Component already registered", {
       componentId: component.id
@@ -40,7 +40,7 @@ export function registerComponent(component: Component): void {
       componentId: component.id
     });
     try {
-      component.initialize();
+      await component.initialize();
       logInfo("Component Registry: Component initialized", {
         componentId: component.id
       });
