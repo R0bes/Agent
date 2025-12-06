@@ -8,13 +8,17 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: "http://localhost:3001",
-        changeOrigin: true
-      },
-      "/ws": {
-        target: "ws://localhost:3001",
-        ws: true,
-        changeOrigin: false,
-        secure: false
+        changeOrigin: true,
+        timeout: 10000,
+        configure: (proxy, _options) => {
+          proxy.on("error", (err, _req, _res) => {
+            // Silently handle connection errors during startup
+            // The frontend will retry automatically when components mount
+            if (err.code !== "ECONNREFUSED") {
+              console.debug("[Proxy] Connection error:", err.message);
+            }
+          });
+        }
       }
     }
   }

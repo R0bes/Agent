@@ -8,12 +8,17 @@
 import { AbstractService } from "../base/AbstractService";
 import type { Component, ServiceInterface, SourceMessage } from "../types";
 import { eventBus } from "../../events/eventBus";
-import { createDemoJob, updateJobStatus, listJobs } from "../../models/jobStore";
-import { addMemoryForUser, listMemoriesForUser } from "../../models/memoryStore";
+import { memoryStore } from "../memory/store";
+import { memoryExtractor } from "../memory/extractor";
+import { messageStore } from "../message/store";
+import { conversationStore } from "../../models/conversationStore";
+import { buildContext, prependMemoryToSystemPrompt } from "./contextBuilder";
+import { compactionTrigger } from "./compactionTrigger";
 import { toolEngine } from "../tools/toolEngine";
 import type { ToolContext } from "../types";
 import { getTools } from "../registry";
 import { ollamaChat } from "../llm/ollamaClient";
+import type { OllamaChatMessage } from "../llm/ollamaClient";
 import { logInfo, logDebug, logError, logWarn } from "../../utils/logger";
 
 export interface ChatMessage {
@@ -65,6 +70,34 @@ export async function handleSourceMessage(srcMsg: SourceMessage): Promise<ChatMe
     contentLength: srcMsg.content.length
   });
 
+  // 1. Store user message in both stores
+  await conversationStore.add({
+    id: srcMsg.id,
+    conversationId: srcMsg.conversationId,
+    userId: srcMsg.userId,
+    role: "user",
+    content: srcMsg.content,
+    createdAt: srcMsg.createdAt,
+    metadata: {
+      sourceKind: srcMsg.source.kind
+    }
+  });
+
+  const userMessage = await messageStore.save({
+    id: srcMsg.id,
+    conversationId: srcMsg.conversationId,
+    userId: srcMsg.userId,
+    role: "user",
+    content: srcMsg.content,
+    metadata: {
+      source: srcMsg.source
+    }
+  });
+
+  logDebug("Persona: User message stored", {
+    messageId: userMessage.id
+  });
+
   const startTime = Date.now();
   const assistantContent = await runPersonaForSourceMessage(srcMsg);
   const processingDuration = Date.now() - startTime;
@@ -86,48 +119,100 @@ export async function handleSourceMessage(srcMsg: SourceMessage): Promise<ChatMe
     processingDuration: `${processingDuration}ms`
   });
 
-  // --- demo job + memory logic (unchanged, still useful for the UI) ---
-
-  const jobLabel = `Process message: "${srcMsg.content.slice(0, 32)}${srcMsg.content.length > 32 ? "…" : ""}"`;
-  const job = createDemoJob(jobLabel, "tool");
-  
-  logDebug("Persona: Demo job created", {
-    jobId: job.id,
-    jobLabel,
-    userId: srcMsg.userId
+  // 2. Store assistant message in both stores
+  await conversationStore.add({
+    id: reply.id,
+    conversationId: reply.conversationId,
+    userId: srcMsg.userId,
+    role: "assistant",
+    content: reply.content,
+    createdAt: reply.createdAt,
+    metadata: {
+      processingDuration
+    }
   });
 
-  await eventBus.emit({
-    type: "job_updated",
-    payload: { jobs: listJobs() }
+  await messageStore.save({
+    id: reply.id,
+    conversationId: reply.conversationId,
+    userId: srcMsg.userId,
+    role: "assistant",
+    content: reply.content,
+    metadata: {
+      processingDuration
+    }
   });
 
-  setTimeout(async () => {
-    updateJobStatus(job.id, "running");
-    await eventBus.emit({
-      type: "job_updated",
-      payload: { jobs: listJobs() }
+  // 3. Extract memories from user message using LLM
+  try {
+    const extractionResult = await memoryExtractor.extractFromMessage(userMessage);
+    
+    if (extractionResult.extracted.length > 0) {
+      logInfo("Persona: Memories extracted from message", {
+        messageId: userMessage.id,
+        memoryCount: extractionResult.extracted.length,
+        kinds: extractionResult.extracted.map(m => m.kind)
+      });
+    } else if (extractionResult.skipped) {
+      logDebug("Persona: Memory extraction skipped", {
+        messageId: userMessage.id,
+        reason: extractionResult.reason
+      });
+    }
+  } catch (err) {
+    logError("Persona: Memory extraction failed", err, {
+      messageId: userMessage.id
     });
-  }, 500);
+  }
 
-  setTimeout(async () => {
-    updateJobStatus(job.id, "done");
-    await eventBus.emit({
-      type: "job_updated",
-      payload: { jobs: listJobs() }
-    });
-  }, 1500);
-
-  await addMemoryForUser(
-    srcMsg.userId,
-    "Recent message summary",
-    `User said: "${srcMsg.content.slice(0, 80)}${srcMsg.content.length > 80 ? "…" : ""}".`
-  );
-
+  // 4. Emit memory_updated event with new memories
+  const memories = await memoryStore.list({ userId: srcMsg.userId, limit: 50 });
   await eventBus.emit({
     type: "memory_updated",
-    payload: { userId: srcMsg.userId, memories: await listMemoriesForUser(srcMsg.userId) }
+    payload: { userId: srcMsg.userId, memories }
   });
+
+  // --- check if memory compaction should be triggered ---
+  
+  const toolCtx: ToolContext = {
+    userId: srcMsg.userId,
+    conversationId: srcMsg.conversationId,
+    source: srcMsg.source,
+    meta: {}
+  };
+
+  try {
+    const triggerCheck = await compactionTrigger.shouldTrigger(
+      srcMsg.conversationId,
+      toolCtx
+    );
+
+    if (triggerCheck.shouldTrigger) {
+      logInfo("Persona: Auto-triggering memory compaction", {
+        conversationId: srcMsg.conversationId,
+        userId: srcMsg.userId,
+        reason: triggerCheck.reason,
+        priority: triggerCheck.priority
+      });
+
+      // Trigger compaction in background (don't await)
+      compactionTrigger.trigger(
+        srcMsg.conversationId,
+        toolCtx,
+        "auto"
+      ).catch(err => {
+        logWarn("Persona: Failed to trigger compaction", {
+          conversationId: srcMsg.conversationId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      });
+    }
+  } catch (err) {
+    logWarn("Persona: Error checking compaction trigger", {
+      conversationId: srcMsg.conversationId,
+      error: err instanceof Error ? err.message : String(err)
+    });
+  }
 
   return reply;
 }
@@ -158,7 +243,7 @@ async function runPersonaForSourceMessage(src: SourceMessage): Promise<string> {
     "You are being called from different sources (gui, scheduler, messaging apps).";
 
   // Get tools from component registry (already filtered for enabled tools)
-  // Optionally, we could query the tool_registry tool, but getTools() already filters
+  // Optionally, we could query the toolbox tool, but getTools() already filters
   const availableTools = getTools();
   logDebug("Persona: Available tools retrieved", {
     toolCount: availableTools.length,
@@ -195,7 +280,29 @@ async function runPersonaForSourceMessage(src: SourceMessage): Promise<string> {
     meta: {}
   };
 
-  // Step 1: ask LLM for a plan (tool or final)
+  // Step 1: Build context with history and memory
+  const contextResult = await buildContext(src.content, {
+    userId: src.userId,
+    conversationId: src.conversationId,
+    includeHistory: true,
+    maxHistoryMessages: 10,
+    includeMemory: true,
+    memoryKinds: ["fact", "preference", "summary"]
+  });
+
+  logDebug("Persona: Context built", {
+    historyMessages: contextResult.metadata.historyCount,
+    memories: contextResult.metadata.memoryCount,
+    estimatedTokens: contextResult.metadata.estimatedTokens
+  });
+
+  // Prepend memory context to system prompt
+  const plannerSystemPromptWithMemory = prependMemoryToSystemPrompt(
+    plannerSystemPrompt,
+    contextResult.memoryContext
+  );
+
+  // Step 2: ask LLM for a plan (tool or final) with full context
   try {
     logDebug("Persona: Requesting plan from LLM", {
       messageId: src.id,
@@ -203,13 +310,14 @@ async function runPersonaForSourceMessage(src: SourceMessage): Promise<string> {
     });
 
     const planStartTime = Date.now();
-    const planResponse = await ollamaChat([
-      { role: "system", content: plannerSystemPrompt },
-      {
-        role: "user",
-        content: `User message: ${src.content}`
-      }
-    ]);
+    
+    // Build messages with history context
+    const llmMessages: OllamaChatMessage[] = [
+      { role: "system", content: plannerSystemPromptWithMemory },
+      ...contextResult.messages
+    ];
+    
+    const planResponse = await ollamaChat(llmMessages);
     const planDuration = Date.now() - planStartTime;
 
     logInfo("Persona: LLM plan response received", {

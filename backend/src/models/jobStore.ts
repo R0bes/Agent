@@ -1,3 +1,10 @@
+/**
+ * @deprecated This legacy job store is deprecated. Use the Worker System instead.
+ * See backend/src/components/worker/engine.ts for the new job management system.
+ * 
+ * Keeping exports for backwards compatibility but no new code should use this.
+ */
+
 export type JobStatus = "queued" | "running" | "done" | "failed";
 export type JobType = "memory" | "tool" | "think";
 

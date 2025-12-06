@@ -6,6 +6,7 @@
  */
 import { getAllTools as getBaseTools } from "./base/toolRegistry";
 import { logInfo, logDebug, logWarn, logError } from "../utils/logger";
+import { toolRegistryStore } from "./toolRegistry/toolRegistryStore";
 const components = new Map();
 /**
  * Register a component
@@ -22,7 +23,8 @@ export function registerComponent(component) {
         componentName: component.name,
         hasService: !!component.service,
         hasTool: !!component.tool,
-        hasSource: !!component.source
+        hasSource: !!component.source,
+        hasWorker: !!component.worker
     });
     components.set(component.id, component);
     // Initialize if needed
@@ -73,6 +75,7 @@ export function getServices() {
 /**
  * Get all components that implement Tool
  * Also includes tools registered via AbstractTool base class
+ * Filters out disabled tools
  */
 export function getTools() {
     const componentTools = Array.from(components.values())
@@ -88,7 +91,53 @@ export function getTools() {
             toolMap.set(tool.name, tool);
         }
     }
-    return Array.from(toolMap.values());
+    const allTools = Array.from(toolMap.values());
+    // Filter out disabled tools (only if toolRegistryStore is initialized)
+    // We need to check if store is initialized to avoid errors during startup
+    try {
+        return allTools.filter(tool => {
+            // Skip filtering for tool_registry itself to avoid circular dependency
+            if (tool.name === "tool_registry") {
+                return true;
+            }
+            return toolRegistryStore.isToolEnabled(tool.name);
+        });
+    }
+    catch (err) {
+        // If store is not initialized yet, return all tools
+        logDebug("Component Registry: Tool registry store not initialized, returning all tools");
+        return allTools;
+    }
+}
+/**
+ * Get all tools with their enable/disable status (for GUI)
+ */
+export function getAllToolsWithStatus() {
+    const componentTools = Array.from(components.values())
+        .filter(c => c.tool)
+        .map(c => c.tool)
+        .filter((t) => t !== undefined);
+    const baseTools = getBaseTools();
+    const toolMap = new Map();
+    for (const tool of [...componentTools, ...baseTools]) {
+        if (!toolMap.has(tool.name)) {
+            toolMap.set(tool.name, tool);
+        }
+    }
+    const allTools = Array.from(toolMap.values());
+    try {
+        return allTools.map(tool => ({
+            tool,
+            enabled: toolRegistryStore.isToolEnabled(tool.name)
+        }));
+    }
+    catch (err) {
+        // If store is not initialized, assume all tools are enabled
+        return allTools.map(tool => ({
+            tool,
+            enabled: true
+        }));
+    }
 }
 /**
  * Get all components that implement Source

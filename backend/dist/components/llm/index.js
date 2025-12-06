@@ -7,7 +7,8 @@
  */
 import { AbstractService } from "../base/AbstractService";
 import { AbstractTool } from "../base/AbstractTool";
-import { ollamaChat as ollamaChatFunction } from "../../llm/ollamaClient";
+import { ollamaChat as ollamaChatFunction } from "./ollamaClient";
+export { embeddingClient } from "./embeddingClient";
 import { logInfo } from "../../utils/logger";
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
 const BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";

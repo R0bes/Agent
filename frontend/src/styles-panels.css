@@ -1,0 +1,891 @@
+/* ============================================
+   SLIDE PANELS - SCHEDULER & TOOLS
+   Simplified with base timing variables
+   ============================================ */
+
+/* Base timing variables */
+:root {
+  --panel-transition-time: 0.6s;
+  --header-transition-time: 0.6s;
+}
+
+/* Base Slide Panel */
+.slide-panel {
+  position: absolute;
+  bottom: 0;
+  width: 45%;
+  height: 85vh; /* Default height for transitions */
+  max-height: 85vh; /* Maximum 85% of viewport height */
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  transform: translateY(100%);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+  /* COLLAPSE: Panel moves down first */
+  transition: transform var(--panel-transition-time) cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow var(--panel-transition-time) ease;
+}
+
+/* Scheduler: no right border radius when toolbox button is next to it */
+.slide-panel-left:not(.slide-panel-expanded) {
+  border-top-right-radius: 0;
+}
+
+/* Toolbox: no left border radius when scheduler button is next to it */
+.slide-panel-right:not(.slide-panel-expanded) {
+  border-top-left-radius: 0;
+}
+
+.slide-panel-left {
+  left: 32px; /* After sidebar, shifted further left */
+}
+
+.slide-panel-right {
+  left: calc(32px + 48px); /* Start after sidebar + scheduler button width = 80px */
+}
+
+.slide-panel-toolbox {
+  width: 28%; /* Narrower than default */
+}
+
+/* EXPAND: Panel moves up after header expands */
+.slide-panel-expanded {
+  transform: translateY(0);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  height: auto; /* Allow height to fit content */
+  max-height: 85vh; /* But limit to 85% of viewport */
+  transition: transform var(--panel-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--header-transition-time), 
+              box-shadow var(--panel-transition-time) ease var(--header-transition-time);
+}
+
+/* COLLAPSE: Panel moves down first, header waits */
+.slide-panel:not(.slide-panel-expanded) {
+  transition: transform var(--panel-transition-time) cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow var(--panel-transition-time) ease;
+}
+
+/* Toolbox: left position moves synchronously with scheduler header transformation */
+.slide-panel-left.slide-panel-expanded ~ .slide-panel-right {
+  left: calc(32px + 45%);
+  transition: transform var(--panel-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--header-transition-time), 
+              box-shadow var(--panel-transition-time) ease var(--header-transition-time),
+              left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* When scheduler is collapsed, toolbox panel uses normal transitions */
+.slide-panel-left:not(.slide-panel-expanded) ~ .slide-panel-right:not(.slide-panel-expanded) {
+  transition: transform var(--panel-transition-time) cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow var(--panel-transition-time) ease,
+              left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time);
+}
+
+/* When toolbox is expanded but scheduler is not, toolbox panel waits for header */
+/* Left position waits for panel transition time, then moves synchronously with scheduler header collapse */
+.slide-panel-left:not(.slide-panel-expanded) ~ .slide-panel-right.slide-panel-expanded {
+  transition: transform var(--panel-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--header-transition-time), 
+              box-shadow var(--panel-transition-time) ease var(--header-transition-time),
+              left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time);
+}
+
+/* Morphing Button/Header */
+.slide-panel-morph {
+  position: absolute;
+  bottom: calc(100% - 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 24px 24px 0 0; /* Half of button width (48px / 2 = 24px) */
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.5) 100%);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  border-bottom: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* EXPAND: Header expands immediately */
+  transition: width var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              height var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              bottom var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              transform var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              background var(--header-transition-time) ease,
+              box-shadow var(--header-transition-time) ease;
+}
+
+/* Scheduler button: positioned at left edge */
+.slide-panel-left .slide-panel-morph:not(.slide-panel-morph-expanded) {
+  border-top-right-radius: 0;
+  border-top-left-radius: 24px;
+  left: 0;
+  transform: translateX(0);
+}
+
+/* Toolbox button: positioned at left edge, next to scheduler */
+.slide-panel-right .slide-panel-morph:not(.slide-panel-morph-expanded) {
+  border-top-left-radius: 0;
+  border-top-right-radius: 24px;
+  left: 0;
+  transform: translateX(0);
+}
+
+/* COLLAPSE: Header waits for panel to move down */
+.slide-panel:not(.slide-panel-expanded) .slide-panel-morph:not(.slide-panel-morph-expanded) {
+  transition: width var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              height var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              bottom var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              transform var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              border-radius var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              background var(--header-transition-time) ease var(--panel-transition-time),
+              box-shadow var(--header-transition-time) ease var(--panel-transition-time);
+}
+
+.slide-panel-morph:hover:not(.slide-panel-morph-expanded) {
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.7) 0%, rgba(30, 41, 59, 0.7) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Expanded state - morphs into full header */
+.slide-panel-morph-expanded {
+  bottom: 100%;
+  left: 0;
+  transform: translateX(0);
+  width: 100%;
+  height: 48px; /* Same height as button */
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+  padding: 0; /* No padding - exact same height as button */
+  justify-content: flex-start;
+  /* EXPAND: Header expands immediately */
+  transition: width var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              height var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              bottom var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              transform var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              background var(--header-transition-time) ease,
+              box-shadow var(--header-transition-time) ease;
+}
+
+/* COLLAPSE: Expanded header waits for panel to move down */
+.slide-panel:not(.slide-panel-expanded) .slide-panel-morph-expanded {
+  transition: width var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              height var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              bottom var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              transform var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              border-radius var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              background var(--header-transition-time) ease var(--panel-transition-time),
+              box-shadow var(--header-transition-time) ease var(--panel-transition-time);
+}
+
+/* Toolbox button: left position moves synchronously with scheduler header transformation */
+/* Only applies when scheduler expands/collapses, not when toolbox itself expands/collapses */
+.slide-panel-left.slide-panel-expanded ~ .slide-panel-right .slide-panel-morph:not(.slide-panel-morph-expanded) {
+  left: 0;
+  transition: width var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              height var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              bottom var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              transform var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1),
+              background var(--header-transition-time) ease,
+              box-shadow var(--header-transition-time) ease;
+}
+
+.slide-panel-left:not(.slide-panel-expanded) ~ .slide-panel-right .slide-panel-morph:not(.slide-panel-morph-expanded) {
+  transition: width var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              height var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              bottom var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              transform var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              border-radius var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              background var(--header-transition-time) ease var(--panel-transition-time),
+              box-shadow var(--header-transition-time) ease var(--panel-transition-time);
+}
+
+.slide-panel-morph-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  transition: gap var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1), justify-content var(--header-transition-time) ease;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.slide-panel-morph-expanded .slide-panel-morph-content {
+  gap: var(--spacing-sm);
+  justify-content: flex-start;
+  padding: 0 var(--spacing-md); /* Add padding to content instead of header */
+}
+
+/* Icon transitions */
+.slide-panel-morph:not(.slide-panel-morph-expanded) .slide-panel-morph-content {
+  position: relative;
+}
+
+/* Default state for collapsed button - icon is centered */
+/* This rule only applies when header is fully collapsed (not during collapse) */
+/* Lower specificity so it doesn't override the collapse rule */
+.slide-panel-morph:not(.slide-panel-morph-expanded) .slide-panel-morph-content svg {
+  position: absolute;
+  top: 50%;
+}
+
+.slide-panel-morph-expanded .slide-panel-morph-content svg {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+}
+
+/* COLLAPSE: SVG icon stays left-aligned during entire collapse process */
+/* When panel is collapsed, keep icon at left edge (0) during header collapse */
+.slide-panel:not(.slide-panel-expanded) .slide-panel-morph .slide-panel-morph-content svg {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              transform var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              width var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              height var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) var(--panel-transition-time),
+              opacity var(--header-transition-time) ease var(--panel-transition-time);
+}
+
+/* After header fully collapsed, center the icon */
+/* This rule only applies when header is fully collapsed (not morph-expanded) */
+/* The transition animates from left: 0 to left: 50% after the delay */
+.slide-panel:not(.slide-panel-expanded) .slide-panel-morph:not(.slide-panel-morph-expanded) .slide-panel-morph-content svg {
+  /* Final value: centered - transition animates from left: 0 (previous rule) after delay */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* Transition starts after panel + header have collapsed */
+  transition: left var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) calc(var(--panel-transition-time) + var(--header-transition-time)),
+              transform var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1) calc(var(--panel-transition-time) + var(--header-transition-time));
+}
+
+.slide-panel-morph-content svg {
+  color: var(--accent);
+  width: 20px;
+  height: 20px;
+  opacity: 0.7;
+  flex-shrink: 0;
+  transition: all var(--header-transition-time) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-panel-morph:hover:not(.slide-panel-morph-expanded) .slide-panel-morph-content svg {
+  opacity: 1;
+}
+
+.slide-panel-morph-expanded .slide-panel-morph-content svg {
+  opacity: 1;
+  width: 18px;
+  height: 18px;
+}
+
+/* Title transitions */
+.slide-panel-morph-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  transform: translateX(-10px);
+  /* EXPAND: Title appears after header expands */
+  transition: opacity var(--header-transition-time) ease calc(var(--header-transition-time) * 0.3), 
+              transform var(--header-transition-time) ease calc(var(--header-transition-time) * 0.3), 
+              max-width var(--header-transition-time) ease calc(var(--header-transition-time) * 0.3);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.slide-panel-morph-expanded .slide-panel-morph-title {
+  opacity: 1;
+  max-width: 200px;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* COLLAPSE: Title waits for panel to move down */
+.slide-panel:not(.slide-panel-expanded) .slide-panel-morph-title {
+  transition: opacity var(--header-transition-time) ease var(--panel-transition-time), 
+              transform var(--header-transition-time) ease var(--panel-transition-time), 
+              max-width var(--header-transition-time) ease var(--panel-transition-time);
+}
+
+/* Count badge transitions */
+.slide-panel-morph-count {
+  padding: 2px 6px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  color: var(--text-soft);
+  font-weight: 600;
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  transform: translateX(-10px);
+  /* EXPAND: Count appears after header expands (slightly later than title) */
+  transition: opacity var(--header-transition-time) ease calc(var(--header-transition-time) * 0.4), 
+              transform var(--header-transition-time) ease calc(var(--header-transition-time) * 0.4), 
+              max-width var(--header-transition-time) ease calc(var(--header-transition-time) * 0.4);
+  margin-left: auto;
+  pointer-events: none;
+}
+
+.slide-panel-morph-problem-count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  background: var(--error);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
+}
+
+.slide-panel-morph-expanded .slide-panel-morph-count {
+  opacity: 1;
+  max-width: 80px;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* COLLAPSE: Count waits for panel to move down */
+.slide-panel:not(.slide-panel-expanded) .slide-panel-morph-count {
+  transition: opacity var(--header-transition-time) ease var(--panel-transition-time), 
+              transform var(--header-transition-time) ease var(--panel-transition-time), 
+              max-width var(--header-transition-time) ease var(--panel-transition-time);
+}
+
+/* Badge when collapsed */
+.slide-panel-badge {
+  position: absolute;
+  top: 6px;
+  right: 2px;
+  min-width: 12px;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  background: rgba(99, 102, 241, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  box-shadow: 
+    0 0 0 1px rgba(15, 23, 42, 0.5),
+    0 0 8px rgba(99, 102, 241, 0.3),
+    0 0 12px rgba(99, 102, 241, 0.2);
+  text-align: center;
+  letter-spacing: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.slide-panel-badge > * {
+  display: inline-block;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+  transform: translate(0.5px, 0.5px);
+}
+
+.slide-panel-badge-error {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 
+    0 0 0 1px rgba(15, 23, 42, 0.5),
+    0 0 8px rgba(239, 68, 68, 0.4),
+    0 0 12px rgba(239, 68, 68, 0.3),
+    0 0 16px rgba(239, 68, 68, 0.2);
+}
+
+/* Panel Content */
+.slide-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--spacing-md);
+  min-height: 0;
+  background: var(--bg);
+}
+
+.slide-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.slide-panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.slide-panel-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+
+.slide-panel-content::-webkit-scrollbar-thumb:hover {
+  background: var(--border-soft);
+}
+
+.slide-panel-header {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: var(--spacing-sm);
+  z-index: 10;
+}
+
+/* ============================================
+   PANEL ERROR
+   ============================================ */
+
+.panel-error {
+  margin: 0 0 var(--spacing-md) 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-md);
+  color: var(--error);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-error button {
+  background: none;
+  border: none;
+  color: var(--error);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-error button:hover {
+  opacity: 1;
+}
+
+/* ============================================
+   SCHEDULER FORM
+   ============================================ */
+
+.scheduler-form {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
+  margin-bottom: var(--spacing-xs);
+}
+
+.form-input,
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus,
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+textarea.form-input,
+.form-group textarea {
+  resize: vertical;
+  font-family: 'Courier New', monospace;
+  min-height: 60px;
+}
+
+.form-group small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: var(--spacing-xs);
+}
+
+.form-radio-group {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.form-radio {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.form-radio input[type="radio"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.form-datetime-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+  margin-top: var(--spacing-md);
+}
+
+/* ============================================
+   TOGGLE SWITCH (UNIFIED)
+   ============================================ */
+
+.toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.toggle-switch:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toggle-switch.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.toggle-switch.active::after {
+  transform: translateX(16px);
+}
+
+/* ============================================
+   SCHEDULER TASK CARDS
+   ============================================ */
+
+.panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.scheduler-task-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  margin-bottom: var(--spacing-xs);
+}
+
+.scheduler-task-card:hover {
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.task-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-alt);
+}
+
+.task-card-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+.task-card-icon svg {
+  color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+.task-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-card-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.task-card-schedule-compact {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.task-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.task-delete-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+}
+
+.task-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.task-delete-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.scheduler-header-new-btn {
+  margin-left: auto;
+}
+
+.scheduler-header-new-btn button {
+  width: 24px;
+  height: 24px;
+}
+
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+  opacity: 0.5;
+  min-height: 200px;
+}
+
+.panel-empty-icon {
+  font-size: 32px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.panel-empty-text {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ============================================
+   TOOLS LIST COMPACT
+   ============================================ */
+
+.tools-list-compact {
+  display: flex;
+  flex-direction: column;
+}
+
+.tools-group-header {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  background: var(--bg);
+  position: sticky;
+  top: -16px; /* Account for padding */
+  z-index: 2;
+  border-bottom: 1px solid var(--border);
+  margin: 0 calc(var(--spacing-md) * -1) var(--spacing-sm);
+}
+
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-elevated);
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border);
+  margin: 0 calc(var(--spacing-md) * -1);
+}
+
+.tool-row:hover {
+  background: var(--bg-alt);
+}
+
+.tool-row-system {
+  background: rgba(99, 102, 241, 0.05);
+  border-left: 3px solid var(--accent);
+  padding-left: calc(var(--spacing-md) - 3px);
+}
+
+.tool-row-system:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.tool-row-system .toggle-switch:disabled {
+  opacity: 0.6;
+}
+
+.tool-category-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.tool-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.tool-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  min-width: 150px;
+  flex-shrink: 0;
+}
+
+.tool-description {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* ============================================
+   HELPERS
+   ============================================ */
+
+.task-icon {
+  font-size: 14px;
+  margin-right: var(--spacing-xs);
+}
+
+.badge-system {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  margin-left: var(--spacing-xs);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}

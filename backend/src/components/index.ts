@@ -17,7 +17,8 @@ export { websiteSearchToolComponent } from "./tools/websiteSearch";
 export { schedulerToolComponent } from "./tools/scheduler";
 export { workerManagerToolComponent } from "./tools/workerManager";
 export { eventCrawlerComponent } from "./tools/eventCrawler";
-export { toolRegistryComponent } from "./toolRegistry";
+export { guiControlToolComponent } from "./tools/guiControl";
+export { toolboxComponent } from "./toolbox";
 export { memoryCompactionWorkerComponent } from "./worker/memory";
 
 // Re-export utilities

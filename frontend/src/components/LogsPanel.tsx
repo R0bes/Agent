@@ -121,55 +121,91 @@ export const LogsPanel: React.FC<{ isOpen: boolean; onClose: () => void; onOpen:
     });
   };
 
+  // Close logs when clicking outside
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const logsPanel = target.closest('.logs-panel');
+      if (!logsPanel) {
+        onClose();
+      }
+    };
+
+    // Delay adding the listener to avoid immediate trigger from the open click
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 0);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
+
   return (
     <>
-      <div className={`logs-overlay ${isOpen ? "logs-overlay-open" : ""}`} onClick={onClose} />
-      {/* Logs Hover Button - positioned outside panel so it's always visible */}
-      <button
-        className={`logs-hover-button ${isOpen ? "logs-button-panel-open" : ""}`}
-        onClick={() => isOpen ? onClose() : onOpen()}
-        title={isOpen ? "Close Logs" : "Show Logs"}
-      >
-        <LogsIcon />
-      </button>
       <div className={`logs-panel ${isOpen ? "logs-panel-open" : ""}`}>
-        <div className="logs-panel-header">
-          <div className="logs-panel-filters">
-            <button
-              className={`logs-filter-btn logs-filter-debug ${selectedFilters.has("debug") ? "active" : ""}`}
-              onClick={() => toggleFilter("debug")}
-            >
-              Debug
-            </button>
-            <button
-              className={`logs-filter-btn logs-filter-info ${selectedFilters.has("info") ? "active" : ""}`}
-              onClick={() => toggleFilter("info")}
-            >
-              Info
-            </button>
-            <button
-              className={`logs-filter-btn logs-filter-warn ${selectedFilters.has("warn") ? "active" : ""}`}
-              onClick={() => toggleFilter("warn")}
-            >
-              Warn
-            </button>
-            <button
-              className={`logs-filter-btn logs-filter-error ${selectedFilters.has("error") ? "active" : ""}`}
-              onClick={() => toggleFilter("error")}
-            >
-              Error
-            </button>
-          </div>
-          <div className="logs-panel-header-right">
-            <div className="logs-panel-count">{filteredLogs.length}</div>
-            <button
-              className="logs-clear-btn"
-              onClick={clearLogs}
-              title="Clear logs"
-            >
-              Clear
-            </button>
-          </div>
+        {/* Morphing Button/Header with integrated filters */}
+        <div 
+          className={`logs-panel-morph ${isOpen ? 'logs-panel-morph-expanded' : ''}`}
+        >
+          {/* Top row: Title and icon */}
+          <button
+            className="logs-panel-morph-header"
+            onClick={(e) => {
+              e.stopPropagation();
+              isOpen ? onClose() : onOpen();
+            }}
+            title={isOpen ? "Click to close" : "Show Logs"}
+          >
+            <div className="logs-panel-morph-content">
+              <LogsIcon />
+              <span className="logs-panel-morph-title">Logs</span>
+              <span className="logs-panel-morph-count">{filteredLogs.length}</span>
+            </div>
+          </button>
+
+          {/* Bottom row: Filters (only visible when expanded) */}
+          {isOpen && (
+            <div className="logs-panel-morph-filters">
+              <div className="logs-panel-filters">
+                <button
+                  className={`logs-filter-btn logs-filter-debug ${selectedFilters.has("debug") ? "active" : ""}`}
+                  onClick={(e) => { e.stopPropagation(); toggleFilter("debug"); }}
+                >
+                  Debug
+                </button>
+                <button
+                  className={`logs-filter-btn logs-filter-info ${selectedFilters.has("info") ? "active" : ""}`}
+                  onClick={(e) => { e.stopPropagation(); toggleFilter("info"); }}
+                >
+                  Info
+                </button>
+                <button
+                  className={`logs-filter-btn logs-filter-warn ${selectedFilters.has("warn") ? "active" : ""}`}
+                  onClick={(e) => { e.stopPropagation(); toggleFilter("warn"); }}
+                >
+                  Warn
+                </button>
+                <button
+                  className={`logs-filter-btn logs-filter-error ${selectedFilters.has("error") ? "active" : ""}`}
+                  onClick={(e) => { e.stopPropagation(); toggleFilter("error"); }}
+                >
+                  Error
+                </button>
+              </div>
+              <div className="logs-panel-header-right">
+                <button
+                  className="logs-clear-btn"
+                  onClick={(e) => { e.stopPropagation(); clearLogs(); }}
+                  title="Clear logs"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="logs-panel-body" ref={listRef}>
           {filteredLogs.length === 0 ? (

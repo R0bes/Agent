@@ -35,7 +35,15 @@ alwaysApply: true
    - Add comments for complex logic, but prefer self-documenting code
    - Ensure proper error handling and edge case coverage
 
-6. **GUI Design Principles**
+6. **No Legacy Code, No Backwards Compatibility**
+   - **Never keep legacy code**: Remove old code immediately when refactoring or replacing functionality
+   - **No backwards compatibility**: Don't maintain compatibility with old APIs, formats, or interfaces
+   - **Always forward-looking**: We never look back, only forward
+   - **Clean breaks**: When changing something, make a clean break - remove old code completely
+   - **No deprecated flags**: Don't mark things as deprecated, just remove them
+   - **No migration paths**: Don't create migration code or compatibility layers
+
+7. **GUI Design Principles**
    - **No space waste**: Maximize information density without clutter, use space efficiently
    - **No redundancy**: Avoid duplicating information or controls, consolidate similar elements
    - **Beautiful information aggregation**: Group related information logically and visually

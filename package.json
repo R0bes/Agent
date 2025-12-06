@@ -7,13 +7,9 @@
   ],
   "scripts": {
     "install:all": "npm install",
-    "dev": "node devctl.mjs dev",
-    "dev:backend": "node devctl.mjs backend",
-    "dev:frontend": "node devctl.mjs frontend",
-    "dev:all": "node devctl.mjs dev",
-    "infra:up": "node devctl.mjs infra:up",
-    "infra:down": "node devctl.mjs infra:down",
-    "setup": "npm install && npm run dev"
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "setup": "npm install"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5"

@@ -1,6 +1,6 @@
 // Compatibility layer for legacy code
 // Uses the new MemoryStore abstraction under the hood
-import { memoryStore } from "../memory";
+import { memoryStore } from "../components/memory";
 /**
  * @deprecated Use memoryStore.add() directly for new code
  * Legacy function for adding memories - now uses MemoryStore abstraction

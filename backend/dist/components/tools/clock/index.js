@@ -1,12 +1,9 @@
+import { AbstractTool } from "../../base/AbstractTool";
 /**
  * Clock Tool Component
  *
  * Implements Tool interface using AbstractTool base class.
- * - Tool: Returns the current server time in ISO format
- */
-import { AbstractTool } from "../../base/AbstractTool";
-/**
- * Clock Tool implementation
+ * - Tool: Returns current server time
  */
 class ClockTool extends AbstractTool {
     constructor() {
@@ -49,6 +46,6 @@ const clockToolInstance = new ClockTool();
 export const clockToolComponent = {
     id: "clock-tool",
     name: "Clock Tool Component",
-    description: "Returns the current server time in ISO format",
+    description: "Returns current server time",
     tool: clockToolInstance
 };

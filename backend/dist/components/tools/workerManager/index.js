@@ -5,14 +5,13 @@
  * - Tool: Introspects and manages worker tools and their jobs
  */
 import { AbstractTool } from "../../base/AbstractTool";
-import { WorkerManagerTool } from "../../../tools/worker/workerManagerTool";
+import { bullMQWorkerEngine } from "../../worker/bullmq-engine";
 /**
  * Worker Manager Tool implementation
  */
 class WorkerManagerToolAdapter extends AbstractTool {
     constructor() {
         super(...arguments);
-        this.workerManagerTool = new WorkerManagerTool();
         this.name = "worker_manager";
         this.shortDescription = "Introspects and manages worker tools and their jobs.";
         this.description = "Introspects and manages worker tools and their jobs. This tool allows the persona to inspect the current worker environment, list available workers, and view recent jobs and their status. Use this tool to provide transparency to users about background work being performed.";
@@ -67,8 +66,24 @@ class WorkerManagerToolAdapter extends AbstractTool {
             }
         ];
     }
-    async execute(args, ctx) {
-        return await this.workerManagerTool.execute(args, ctx);
+    async execute(args, _ctx) {
+        const action = args.action ?? "list_workers";
+        if (action === "list_workers") {
+            const workers = bullMQWorkerEngine.listWorkers().map((w) => ({
+                name: w.name,
+                description: w.description,
+                category: w.category
+            }));
+            return { ok: true, data: { workers } };
+        }
+        if (action === "list_jobs") {
+            const jobs = await bullMQWorkerEngine.listJobs();
+            return { ok: true, data: { jobs } };
+        }
+        return {
+            ok: false,
+            error: `Unknown action for worker_manager: ${action}`
+        };
     }
 }
 // Create singleton instance (auto-registers on construction)

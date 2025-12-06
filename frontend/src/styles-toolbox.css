@@ -1,0 +1,395 @@
+/* ============================================
+   TOOLBOX SPECIFIC STYLES
+   ============================================ */
+
+/* Toolbox List */
+.toolbox-list-compact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.toolbox-group-header {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  background: var(--bg);
+  position: sticky;
+  top: -16px;
+  z-index: 2;
+  border-bottom: 1px solid var(--border);
+  margin: 0 calc(var(--spacing-md) * -1) var(--spacing-sm);
+}
+
+.toolbox-group-header-unhealthy {
+  color: var(--error);
+  border-bottom-color: var(--error);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.toolbox-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  margin-bottom: var(--spacing-xs);
+  overflow: hidden;
+}
+
+.toolbox-card:hover {
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbox-card-header {
+  display: flex;
+  align-items: center;
+}
+
+.toolbox-card-header-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.toolbox-card-header-btn:hover {
+  background: var(--bg-alt);
+}
+
+.toolbox-access-indicators {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.toolbox-access-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: var(--muted);
+  opacity: 0.4;
+}
+
+.toolbox-access-dot:hover:not(:disabled) {
+  opacity: 0.7;
+  transform: scale(1.2);
+}
+
+.toolbox-access-dot.active {
+  opacity: 1;
+  transform: scale(1.3);
+}
+
+.toolbox-access-persona.active {
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.5);
+}
+
+.toolbox-access-worker.active {
+  background: var(--info);
+  box-shadow: 0 0 6px rgba(34, 211, 238, 0.5);
+}
+
+.toolbox-access-dot:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.toolbox-card-body {
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.toolbox-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.toolbox-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.toolbox-detail-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.toolbox-detail-text {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.toolbox-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.toolbox-status-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.toolbox-status-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.toolbox-status-healthy {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.toolbox-status-unknown {
+  background: var(--bg-alt);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.toolbox-status-icon {
+  font-size: 12px;
+}
+
+.toolbox-error-section {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+}
+
+.toolbox-error-message {
+  font-size: 11px;
+  color: var(--error);
+  line-height: 1.5;
+  padding: var(--spacing-sm);
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--error);
+}
+
+.toolbox-config-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 11px;
+}
+
+.toolbox-config-label {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.toolbox-config-value {
+  font-weight: 600;
+}
+
+.toolbox-config-value.enabled {
+  color: var(--success);
+}
+
+.toolbox-config-value.disabled {
+  color: var(--muted);
+}
+
+.toolbox-card-system {
+  background: rgba(99, 102, 241, 0.05);
+  border-left: 3px solid var(--accent);
+}
+
+.toolbox-card-system:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* Unhealthy system services - override border color */
+.toolbox-card-system.toolbox-card-error {
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid var(--error);
+}
+
+.toolbox-card-system.toolbox-card-error:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.toolbox-card-system.toolbox-card-warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid var(--warning);
+}
+
+.toolbox-card-system.toolbox-card-warning:hover {
+  background: rgba(245, 158, 11, 0.12);
+}
+
+/* Error and Warning States */
+.toolbox-card-error {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: var(--error);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4), 0 0 16px rgba(239, 68, 68, 0.2);
+}
+
+.toolbox-card-error:hover {
+  background: rgba(239, 68, 68, 0.12);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+.toolbox-card-warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: var(--warning);
+}
+
+.toolbox-card-warning:hover {
+  background: rgba(245, 158, 11, 0.12);
+}
+
+/* Unavailable/Disabled Tools */
+.toolbox-card-unavailable {
+  opacity: 0.7;
+  background: rgba(239, 68, 68, 0.05) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.toolbox-card-unavailable:hover {
+  opacity: 0.8;
+  background: rgba(239, 68, 68, 0.08) !important;
+  transform: none;
+  cursor: not-allowed;
+}
+
+.toolbox-card-unavailable .toolbox-name,
+.toolbox-card-unavailable .toolbox-description {
+  color: var(--muted);
+}
+
+.toolbox-card-system.toolbox-card-unavailable {
+  border-left-color: rgba(239, 68, 68, 0.5) !important;
+}
+
+.toolbox-category-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.toolbox-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolbox-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+}
+
+.toolbox-description {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toolbox-status-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-right: var(--spacing-xs);
+}
+
+/* Mini Toggles for Persona/Worker */
+.toolbox-toggles {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border);
+}
+
+.toggle-mini {
+  width: 24px;
+  height: 24px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.toggle-mini:hover:not(:disabled) {
+  background: var(--bg-alt);
+  border-color: var(--border-soft);
+  color: var(--text);
+}
+
+.toggle-mini.active {
+  color: white;
+}
+
+.toggle-mini-persona.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle-mini-worker.active {
+  background: var(--info);
+  border-color: var(--info);
+}
+
+.toggle-mini:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Badge for errors - already defined in styles-panels.css */
+

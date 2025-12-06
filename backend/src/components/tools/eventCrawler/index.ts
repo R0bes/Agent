@@ -858,64 +858,126 @@ class EventCrawlerTool extends AbstractTool {
 
   /**
    * Parse Bassoverse events
+   * Bassoverse uses a format like "06.12.2025 • AB 15:00"
    */
   private parseBassoverse(html: string, baseUrl: string): Omit<Event, "id" | "scrapedAt">[] {
     const events: Omit<Event, "id" | "scrapedAt">[] = [];
     
-    // Try to find event listings
-    const patterns = [
-      /<h[23][^>]*>([^<]+)<\/h[23]>[\s\S]{0,500}?(\d{1,2})\.(\d{1,2})\.(\d{4})/gi,
-      /<div[^>]*class="[^"]*event[^"]*"[^>]*>[\s\S]*?<h[23][^>]*>([^<]+)<\/h[23]>[\s\S]*?(\d{1,2})\.(\d{1,2})\.(\d{4})/gi
-    ];
+    // Pattern 1: Date format "DD.MM.YYYY • AB HH:MM" or "DD.MM.YYYY"
+    const dateTimePattern = /(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s*•\s*AB\s*(\d{1,2}):(\d{2}))?/gi;
+    
+    // Pattern 2: Look for dates in ISO format "YYYY-MM-DD"
+    const isoDatePattern = /(\d{4})-(\d{2})-(\d{2})/g;
     
     const seen = new Set<string>();
     
-    for (const pattern of patterns) {
-      let match;
-      while ((match = pattern.exec(html)) !== null) {
-        try {
-          const title = match[1]?.trim();
-          if (!title || title.length < 3) continue;
-          
-          const day = match[2];
-          const month = match[3];
-          const year = match[4];
-          
-          if (!day || !month || !year) continue;
-          
-          const eventDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-          if (isNaN(eventDate.getTime())) continue;
-          
-          // Skip past events
-          if (eventDate < new Date()) continue;
-          
-          const key = `${title}-${eventDate.toISOString()}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          
-          // Extract artists
-          const artists: string[] = [];
-          const content = html.substring(match.index, match.index + 1000);
-          const artistMatches = content.match(/(?:DJ|Live|w\/|with|feat\.?)\s+([A-Z][A-Za-z\s&]+?)(?:\s|,|$|<\/)/g);
-          if (artistMatches) {
-            artistMatches.forEach((m) => {
-              const artist = m.replace(/(?:DJ|Live|w\/|with|feat\.?)\s*/i, "").trim();
-              if (artist && artist.length > 2 && !artists.includes(artist)) {
-                artists.push(artist);
-              }
-            });
+    // Try DD.MM.YYYY format
+    let match;
+    while ((match = dateTimePattern.exec(html)) !== null) {
+      try {
+        const day = parseInt(match[1]);
+        const month = parseInt(match[2]);
+        const year = parseInt(match[3]);
+        const hour = match[4] ? parseInt(match[4]) : 22; // Default 22:00
+        const minute = match[5] ? parseInt(match[5]) : 0;
+        
+        const eventDate = new Date(year, month - 1, day, hour, minute);
+        if (isNaN(eventDate.getTime())) continue;
+        
+        // Skip past events
+        if (eventDate < new Date()) continue;
+        
+        // Extract title from surrounding context (look backwards and forwards)
+        const startPos = Math.max(0, match.index - 200);
+        const endPos = Math.min(html.length, match.index + match[0].length + 200);
+        const context = html.substring(startPos, endPos);
+        
+        // Try to find title before the date
+        const titleMatch = context.match(/(?:<h[123][^>]*>|<p[^>]*>|<div[^>]*>|<span[^>]*>)([^<]{10,100}?)(?:<\/h[123]>|<\/p>|<\/div>|<\/span>)/i);
+        let title = titleMatch ? this.stripHtml(titleMatch[1]).trim() : undefined;
+        
+        // If no title found, try to extract from text nodes
+        if (!title || title.length < 3) {
+          const textBefore = context.substring(0, context.indexOf(match[0]));
+          const lines = textBefore.split(/[<>]/).filter(l => l.length > 10 && l.length < 100);
+          if (lines.length > 0) {
+            title = lines[lines.length - 1].trim();
           }
-          
-          events.push({
-            club: "Bassoverse",
-            title,
-            date: eventDate.toISOString(),
-            artists: artists.length > 0 ? artists : undefined,
-            url: baseUrl
-          });
-        } catch (err) {
-          continue;
         }
+        
+        if (!title || title.length < 3) {
+          title = `Event ${day}.${month}.${year}`;
+        }
+        
+        const key = `${title}-${eventDate.toISOString()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        
+        // Extract time
+        const time = match[4] ? `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}` : undefined;
+        
+        // Extract artists from context
+        const artists: string[] = [];
+        const artistMatches = context.match(/(?:DJ|Live|w\/|with|feat\.?|featuring)\s+([A-Z][A-Za-z\s&]+?)(?:\s|,|$|<\/)/gi);
+        if (artistMatches) {
+          artistMatches.forEach((m) => {
+            const artist = m.replace(/(?:DJ|Live|w\/|with|feat\.?|featuring)\s*/i, "").trim();
+            if (artist && artist.length > 2 && !artists.includes(artist)) {
+              artists.push(artist);
+            }
+          });
+        }
+        
+        events.push({
+          club: "Bassoverse",
+          title,
+          date: eventDate.toISOString(),
+          time,
+          artists: artists.length > 0 ? artists : undefined,
+          url: baseUrl
+        });
+      } catch (err) {
+        continue;
+      }
+    }
+    
+    // Try ISO date format
+    while ((match = isoDatePattern.exec(html)) !== null) {
+      try {
+        const year = parseInt(match[1]);
+        const month = parseInt(match[2]);
+        const day = parseInt(match[3]);
+        
+        const eventDate = new Date(year, month - 1, day, 22, 0);
+        if (isNaN(eventDate.getTime())) continue;
+        
+        // Skip past events
+        if (eventDate < new Date()) continue;
+        
+        // Extract title from context
+        const startPos = Math.max(0, match.index - 200);
+        const endPos = Math.min(html.length, match.index + match[0].length + 200);
+        const context = html.substring(startPos, endPos);
+        
+        const titleMatch = context.match(/(?:<h[123][^>]*>|<p[^>]*>|<div[^>]*>)([^<]{10,100}?)(?:<\/h[123]>|<\/p>|<\/div>)/i);
+        let title = titleMatch ? this.stripHtml(titleMatch[1]).trim() : undefined;
+        
+        if (!title || title.length < 3) {
+          title = `Event ${day}.${month}.${year}`;
+        }
+        
+        const key = `${title}-${eventDate.toISOString()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        
+        events.push({
+          club: "Bassoverse",
+          title,
+          date: eventDate.toISOString(),
+          url: baseUrl
+        });
+      } catch (err) {
+        continue;
       }
     }
     
@@ -924,64 +986,119 @@ class EventCrawlerTool extends AbstractTool {
 
   /**
    * Parse Elysia events
+   * Elysia uses classes: "events", "event-row", "event-title", "date"
    */
   private parseElysia(html: string, baseUrl: string): Omit<Event, "id" | "scrapedAt">[] {
     const events: Omit<Event, "id" | "scrapedAt">[] = [];
     
-    // Try multiple patterns for Elysia
-    const patterns = [
-      /<h[23][^>]*>([^<]+)<\/h[23]>[\s\S]{0,500}?(\d{1,2})\.(\d{1,2})\.(\d{4})/gi,
-      /<div[^>]*class="[^"]*event[^"]*"[^>]*>[\s\S]*?<h[23][^>]*>([^<]+)<\/h[23]>[\s\S]*?(\d{1,2})\.(\d{1,2})\.(\d{4})/gi
-    ];
+    // Pattern 1: Look for event-row divs with event-title and date
+    const eventRowPattern = /<div[^>]*class="[^"]*event-row[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+    
+    // Pattern 2: Date format DD/MM/YYYY
+    const datePattern = /(\d{1,2})\/(\d{1,2})\/(\d{4})/g;
     
     const seen = new Set<string>();
     
-    for (const pattern of patterns) {
-      let match;
-      while ((match = pattern.exec(html)) !== null) {
-        try {
-          const title = match[1]?.trim();
-          if (!title || title.length < 3) continue;
-          
-          const day = match[2];
-          const month = match[3];
-          const year = match[4];
-          
-          if (!day || !month || !year) continue;
-          
-          const eventDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-          if (isNaN(eventDate.getTime())) continue;
-          
-          // Skip past events
-          if (eventDate < new Date()) continue;
-          
-          const key = `${title}-${eventDate.toISOString()}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          
-          // Extract artists
-          const artists: string[] = [];
-          const content = html.substring(match.index, match.index + 1000);
-          const artistMatches = content.match(/(?:DJ|Live|w\/|with|feat\.?)\s+([A-Z][A-Za-z\s&]+?)(?:\s|,|$|<\/)/g);
-          if (artistMatches) {
-            artistMatches.forEach((m) => {
-              const artist = m.replace(/(?:DJ|Live|w\/|with|feat\.?)\s*/i, "").trim();
-              if (artist && artist.length > 2 && !artists.includes(artist)) {
-                artists.push(artist);
-              }
-            });
-          }
-          
-          events.push({
-            club: "Elysia",
-            title,
-            date: eventDate.toISOString(),
-            artists: artists.length > 0 ? artists : undefined,
-            url: baseUrl
-          });
-        } catch (err) {
-          continue;
+    // Try to find event rows
+    let rowMatch;
+    while ((rowMatch = eventRowPattern.exec(html)) !== null) {
+      try {
+        const rowHtml = rowMatch[1];
+        
+        // Extract date
+        const dateMatch = rowHtml.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (!dateMatch) continue;
+        
+        const day = parseInt(dateMatch[1]);
+        const month = parseInt(dateMatch[2]);
+        const year = parseInt(dateMatch[3]);
+        
+        const eventDate = new Date(year, month - 1, day, 22, 0);
+        if (isNaN(eventDate.getTime())) continue;
+        
+        // Skip past events
+        if (eventDate < new Date()) continue;
+        
+        // Extract title from event-title class
+        const titleMatch = rowHtml.match(/<[^>]*class="[^"]*event-title[^"]*"[^>]*>([^<]+)<\/[^>]*>/i);
+        let title = titleMatch ? this.stripHtml(titleMatch[1]).trim() : undefined;
+        
+        // Fallback: extract from any heading or strong tag
+        if (!title || title.length < 3) {
+          const headingMatch = rowHtml.match(/<(h[123]|strong|b)[^>]*>([^<]{10,100})<\/(h[123]|strong|b)>/i);
+          title = headingMatch ? this.stripHtml(headingMatch[2]).trim() : undefined;
         }
+        
+        if (!title || title.length < 3) {
+          title = `Event ${day}/${month}/${year}`;
+        }
+        
+        const key = `${title}-${eventDate.toISOString()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        
+        // Extract artists
+        const artists: string[] = [];
+        const artistMatches = rowHtml.match(/(?:DJ|Live|w\/|with|feat\.?|featuring)\s+([A-Z][A-Za-z\s&]+?)(?:\s|,|$|<\/)/gi);
+        if (artistMatches) {
+          artistMatches.forEach((m) => {
+            const artist = m.replace(/(?:DJ|Live|w\/|with|feat\.?|featuring)\s*/i, "").trim();
+            if (artist && artist.length > 2 && !artists.includes(artist)) {
+              artists.push(artist);
+            }
+          });
+        }
+        
+        events.push({
+          club: "Elysia",
+          title,
+          date: eventDate.toISOString(),
+          artists: artists.length > 0 ? artists : undefined,
+          url: baseUrl
+        });
+      } catch (err) {
+        continue;
+      }
+    }
+    
+    // Fallback: try simple date pattern
+    let match;
+    while ((match = datePattern.exec(html)) !== null) {
+      try {
+        const day = parseInt(match[1]);
+        const month = parseInt(match[2]);
+        const year = parseInt(match[3]);
+        
+        const eventDate = new Date(year, month - 1, day, 22, 0);
+        if (isNaN(eventDate.getTime())) continue;
+        
+        // Skip past events
+        if (eventDate < new Date()) continue;
+        
+        // Extract title from context
+        const startPos = Math.max(0, match.index - 200);
+        const endPos = Math.min(html.length, match.index + match[0].length + 200);
+        const context = html.substring(startPos, endPos);
+        
+        const titleMatch = context.match(/(?:<h[123][^>]*>|<div[^>]*class="[^"]*event-title[^"]*"[^>]*>)([^<]{10,100}?)(?:<\/h[123]>|<\/div>)/i);
+        let title = titleMatch ? this.stripHtml(titleMatch[1]).trim() : undefined;
+        
+        if (!title || title.length < 3) {
+          title = `Event ${day}/${month}/${year}`;
+        }
+        
+        const key = `${title}-${eventDate.toISOString()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        
+        events.push({
+          club: "Elysia",
+          title,
+          date: eventDate.toISOString(),
+          url: baseUrl
+        });
+      } catch (err) {
+        continue;
       }
     }
     

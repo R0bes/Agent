@@ -72,6 +72,7 @@ export function createLogEntry(
 
 /**
  * Format log entry for console output
+ * Plain text format without ANSI colors (colors added by cli.py based on level prefix)
  */
 export function formatLogForConsole(entry: LogEntry): string {
   const time = new Date(entry.timestamp).toLocaleTimeString("de-CH", {
@@ -80,11 +81,20 @@ export function formatLogForConsole(entry: LogEntry): string {
     second: "2-digit"
   });
   
-  const level = entry.level.toUpperCase().padEnd(5);
-  const category = entry.category ? `[${entry.category}]` : "";
-  const prefix = `${time} ${level} ${category}`.trim();
+  // Level indicator: single char for compact display
+  const levelIndicator: Record<LogLevel, string> = {
+    trace: "T",
+    debug: "D", 
+    info: "I",
+    warn: "W",
+    error: "E",
+    fatal: "F"
+  };
+  const level = levelIndicator[entry.level] || "?";
   
-  let output = `${prefix} ${entry.message}`;
+  const category = entry.category ? `[${entry.category}] ` : "";
+  
+  let message = `${category}${entry.message}`;
   
   // Add metadata if present
   if (entry.metadata) {
@@ -93,16 +103,17 @@ export function formatLogForConsole(entry: LogEntry): string {
     if (entry.metadata.userId) metaParts.push(`user:${entry.metadata.userId}`);
     if (entry.metadata.duration) metaParts.push(`⏱ ${entry.metadata.duration}`);
     if (metaParts.length > 0) {
-      output += ` (${metaParts.join(", ")})`;
+      message += ` (${metaParts.join(", ")})`;
     }
   }
   
   // Add error if present
   if (entry.error) {
-    output += ` | Error: ${entry.error.message}`;
+    message += ` | Error: ${entry.error.message}`;
   }
   
-  return output;
+  // Format: "HH:MM:SS L message" where L is level indicator
+  return `${time} ${level} ${message}`;
 }
 
 /**

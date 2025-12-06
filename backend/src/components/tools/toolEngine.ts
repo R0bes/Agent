@@ -1,6 +1,7 @@
 import type { ToolContext, ToolResult } from "../types";
 import { getToolByName } from "../registry";
-import { toolRegistryStore } from "../toolRegistry/toolRegistryStore";
+import { toolboxStore } from "../toolbox/toolboxStore";
+import { eventBus } from "../../events/eventBus";
 import { logInfo, logDebug, logError, logWarn } from "../../utils/logger";
 
 export interface ToolCall {
@@ -10,10 +11,15 @@ export interface ToolCall {
 
 /**
  * The ToolEngine is the central place where persona delegates tool calls.
- * Uses the component registry to find tools.
- * Later, this can dispatch to local tools, remote MCP servers, or dedicated worker queues.
+ * Emits tool_execute events which are handled by Toolbox and executed via Worker Engine.
  */
 export class ToolEngine {
+  private pendingExecutions = new Map<string, {
+    resolve: (result: ToolResult) => void;
+    reject: (error: Error) => void;
+    timeout: NodeJS.Timeout;
+  }>();
+
   async execute(call: ToolCall, ctx: ToolContext): Promise<ToolResult> {
     logDebug("ToolEngine: Executing tool", {
       toolName: call.name,
@@ -35,10 +41,10 @@ export class ToolEngine {
       };
     }
 
-    // Check if tool is enabled (skip check for tool_registry itself)
-    if (tool.name !== "tool_registry") {
+    // Check if tool is enabled (skip check for toolbox itself)
+    if (tool.name !== "toolbox") {
       try {
-        const isEnabled = toolRegistryStore.isToolEnabled(tool.name);
+        const isEnabled = toolboxStore.isToolEnabled(tool.name);
         if (!isEnabled) {
           logWarn("ToolEngine: Tool is disabled", {
             toolName: call.name,
@@ -56,48 +62,66 @@ export class ToolEngine {
       }
     }
 
-    const startTime = Date.now();
-    try {
-      // Check if tool is an AbstractTool instance with executeWithLogging
-      const result = (tool as any).executeWithLogging
-        ? await (tool as any).executeWithLogging(call.args, ctx)
-        : await tool.execute(call.args, ctx);
-      
-      const duration = Date.now() - startTime;
-      
-      if (result.ok) {
-        logInfo("ToolEngine: Tool execution completed", {
-          toolName: call.name,
-          userId: ctx.userId,
-          conversationId: ctx.conversationId,
-          duration: `${duration}ms`
-        });
-      } else {
-        logWarn("ToolEngine: Tool execution failed", {
-          toolName: call.name,
-          userId: ctx.userId,
-          conversationId: ctx.conversationId,
-          error: result.error,
-          duration: `${duration}ms`
-        });
-      }
-      
-      return result;
-    } catch (err: any) {
-      const duration = Date.now() - startTime;
-      logError("ToolEngine: Tool execution threw error", err, {
+    // Erstelle Execution ID
+    const executionId = `tool-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Emittiere tool_execute Event
+    // Toolbox wandelt dies in Worker-Job um
+    await eventBus.emit({
+      type: "tool_execute",
+      payload: {
+        id: executionId,
         toolName: call.name,
-        userId: ctx.userId,
-        conversationId: ctx.conversationId,
-        duration: `${duration}ms`
+        args: call.args,
+        ctx,
+        retry: {
+          maxAttempts: 3,
+          delay: 1000
+        }
+      }
+    });
+
+    // Warte auf tool_executed Event
+    return new Promise<ToolResult>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pendingExecutions.delete(executionId);
+        reject(new Error(`Tool execution timeout: ${call.name}`));
+      }, 30000); // 30 Sekunden Timeout
+
+      this.pendingExecutions.set(executionId, {
+        resolve,
+        reject,
+        timeout
       });
-      return {
-        ok: false,
-        error: err?.message ?? String(err)
-      };
+    });
+  }
+
+  /**
+   * Handle tool_executed Event (wird von Tool-Execution-Worker emittiert)
+   */
+  handleToolExecuted(payload: {
+    executionId: string;
+    toolName: string;
+    result: ToolResult;
+    ctx: ToolContext;
+  }): void {
+    const pending = this.pendingExecutions.get(payload.executionId);
+    if (pending) {
+      clearTimeout(pending.timeout);
+      this.pendingExecutions.delete(payload.executionId);
+      pending.resolve(payload.result);
+    } else {
+      logDebug("ToolEngine: Received tool_executed for unknown execution", {
+        executionId: payload.executionId
+      });
     }
   }
 }
 
 export const toolEngine = new ToolEngine();
+
+// Subscribe to tool_executed events
+eventBus.on("tool_executed", (event) => {
+  toolEngine.handleToolExecuted(event.payload);
+});
 

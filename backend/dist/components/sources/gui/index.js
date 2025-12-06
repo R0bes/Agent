@@ -1,17 +1,14 @@
+import { AbstractSource } from "../../base/AbstractSource";
 /**
  * GUI Source Component
  *
  * Implements Source interface using AbstractSource base class.
- * - Source: Converts GUI chat messages into SourceMessages for the persona
+ * - Source: Handles GUI/web chat messages
  */
-import { AbstractSource } from "../../base/AbstractSource";
-/**
- * GUI Source implementation
- */
-class GuiSource extends AbstractSource {
+class GUISource extends AbstractSource {
     constructor() {
         super(...arguments);
-        this.id = "gui-source";
+        this.id = "gui-web-chat";
         this.kind = "gui";
         this.label = "Web Chat";
     }
@@ -31,13 +28,13 @@ class GuiSource extends AbstractSource {
     }
 }
 // Create singleton instance
-const guiSourceInstance = new GuiSource();
+const guiSourceInstance = new GUISource();
 /**
  * GUI Source Component
  */
 export const guiSourceComponent = {
     id: "gui-source",
     name: "GUI Source Component",
-    description: "Converts GUI chat messages into SourceMessages for the persona",
+    description: "Handles GUI/web chat messages",
     source: guiSourceInstance
 };

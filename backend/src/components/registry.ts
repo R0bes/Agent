@@ -8,7 +8,7 @@
 import type { Component, ServiceInterface, ToolInterface, SourceInterface, WorkerInterface } from "./types";
 import { getAllTools as getBaseTools } from "./base/toolRegistry";
 import { logInfo, logDebug, logWarn, logError } from "../utils/logger";
-import { toolRegistryStore } from "./toolRegistry/toolRegistryStore";
+import { toolboxStore } from "./toolbox/toolboxStore";
 
 const components = new Map<string, Component>();
 
@@ -109,11 +109,11 @@ export function getTools(): ToolInterface[] {
   // We need to check if store is initialized to avoid errors during startup
   try {
     return allTools.filter(tool => {
-      // Skip filtering for tool_registry itself to avoid circular dependency
-      if (tool.name === "tool_registry") {
+      // Skip filtering for toolbox itself to avoid circular dependency
+      if (tool.name === "toolbox") {
         return true;
       }
-      return toolRegistryStore.isToolEnabled(tool.name);
+      return toolboxStore.isToolEnabled(tool.name);
     });
   } catch (err) {
     // If store is not initialized yet, return all tools
@@ -145,7 +145,7 @@ export function getAllToolsWithStatus(): Array<{ tool: ToolInterface; enabled: b
   try {
     return allTools.map(tool => ({
       tool,
-      enabled: toolRegistryStore.isToolEnabled(tool.name)
+      enabled: toolboxStore.isToolEnabled(tool.name)
     }));
   } catch (err) {
     // If store is not initialized, assume all tools are enabled

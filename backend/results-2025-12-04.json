@@ -1,0 +1,885 @@
+{
+  "summary": {
+    "events": 50,
+    "artists": 9,
+    "collectives": 11,
+    "labels": 5
+  },
+  "events": [
+    {
+      "id": "event-1764868872766-1f9c1d3ec614f",
+      "club": "Kaschemme",
+      "title": "ELECTRONIC EUPHORIA w/ OMAR DAHL live",
+      "date": "2025-12-04T23:00:00.000Z",
+      "artists": [
+        "OMAR DAHL live"
+      ],
+      "genres": [
+        "electronic"
+      ],
+      "score": 19,
+      "url": "https://www.kaschemme.ch/programm/2512/euphoria"
+    },
+    {
+      "id": "event-1764868872765-12a23c86161f5",
+      "club": "Nordstern",
+      "title": "Untitled Event",
+      "date": "2025-12-13T22:00:00.000Z",
+      "time": "23:00",
+      "genres": [
+        "electronic",
+        "emo",
+        "experimental"
+      ],
+      "score": 15,
+      "url": "https://tickets.nordstern.com/events/avaion"
+    },
+    {
+      "id": "event-1764868872770-01db24ec29cfc",
+      "club": "Kaschemme",
+      "title": "BASS ARCADE w/ Phill Turner &amp; Spiralek",
+      "date": "2026-07-17T22:00:00.000Z",
+      "artists": [
+        "Phill Turner &amp; Spiralek"
+      ],
+      "collectives": [
+        "BASS ARCADE"
+      ],
+      "genres": [
+        "bass"
+      ],
+      "score": 15,
+      "url": "https://www.kaschemme.ch/programm/2507/bassarcade"
+    },
+    {
+      "id": "event-1764868872769-e3100a8496ed1",
+      "club": "Kaschemme",
+      "title": "WEIL SONNTAG w/ NICA",
+      "date": "2026-10-04T22:00:00.000Z",
+      "artists": [
+        "NICA"
+      ],
+      "collectives": [
+        "WEIL SONNTAG"
+      ],
+      "score": 15,
+      "url": "https://www.kaschemme.ch/programm/2510/weilsonntag"
+    },
+    {
+      "id": "event-1764868872768-63265cf570894",
+      "club": "Kaschemme",
+      "title": "BONEFLOWER NIGHT - A GOTHIC SOIRÉE w/ TWIN NOIR &amp; LETTEN 94",
+      "date": "2026-10-09T22:00:00.000Z",
+      "artists": [
+        "TWIN NOIR &amp; LETTEN 94"
+      ],
+      "collectives": [
+        "BONEFLOWER"
+      ],
+      "genres": [
+        "rock",
+        "goth"
+      ],
+      "score": 15,
+      "url": "https://www.kaschemme.ch/programm/2025/10/10/boneflower-night-a-gothic-soire-w-twin-noir-amp-letten-94"
+    },
+    {
+      "id": "event-1764868872768-e5ef657b16d22",
+      "club": "Kaschemme",
+      "title": "DER INDIE SLOT w/ Mille Scuse &amp; Dirk Dollar",
+      "date": "2026-10-31T23:00:00.000Z",
+      "artists": [
+        "Mille Scuse &amp; Dirk Dollar"
+      ],
+      "collectives": [
+        "DER INDIE SLOT"
+      ],
+      "genres": [
+        "indie",
+        "rock"
+      ],
+      "score": 15,
+      "url": "https://www.kaschemme.ch/programm/2511/derindieslot"
+    },
+    {
+      "id": "event-1764868872767-3cf2508c808ce",
+      "club": "Kaschemme",
+      "title": "MindBodySoul w/ Jelena, Cephei, Faln",
+      "date": "2026-11-14T23:00:00.000Z",
+      "artists": [
+        "Jelena"
+      ],
+      "genres": [
+        "bass"
+      ],
+      "score": 15,
+      "url": "https://www.kaschemme.ch/programm/2025/11/15/mindbodysoul-w-jelena-cephei-faln"
+    },
+    {
+      "id": "event-1764868872767-2826e529043c1",
+      "club": "Kaschemme",
+      "title": "WEIL SONNTAG w/ DANDARA, MULA, MADMA, EVOILA",
+      "date": "2026-11-15T23:00:00.000Z",
+      "artists": [
+        "DANDARA"
+      ],
+      "collectives": [
+        "WEIL SONNTAG"
+      ],
+      "score": 15,
+      "url": "https://www.kaschemme.ch/programm/2511/weilsonntag"
+    },
+    {
+      "id": "event-1764868872767-5294ce8345751",
+      "club": "Kaschemme",
+      "title": "BASS ARCADE w/ SUBKEY &amp; RUFFCUT",
+      "date": "2026-11-20T23:00:00.000Z",
+      "artists": [
+        "SUBKEY &amp; RUFFCUT"
+      ],
+      "collectives": [
+        "BASS ARCADE"
+      ],
+      "genres": [
+        "drum & bass",
+        "bass"
+      ],
+      "score": 15,
+      "url": "https://www.kaschemme.ch/programm/2025/11/21/bass-arcade-w-subkey-amp-ruffcut"
+    },
+    {
+      "id": "event-1764868872767-ee306be281e92",
+      "club": "Kaschemme",
+      "title": "2 YEARS EMO NIGHT w/ FC KLEINSTADT &amp; COROKIA",
+      "date": "2026-11-21T23:00:00.000Z",
+      "artists": [
+        "FC KLEINSTADT &amp; COROKIA"
+      ],
+      "genres": [
+        "hardstyle",
+        "rock",
+        "emo"
+      ],
+      "score": 15,
+      "url": "https://www.kaschemme.ch/programm/2025/11/22/2-years-emo-night-w-fc-kleinstadt-amp-corokia"
+    },
+    {
+      "id": "event-1764868872768-cd5f88755c3f8",
+      "club": "Kaschemme",
+      "title": "LIVE: DIE P (DE) &amp; Classic der Dicke ft. DJ Crypt",
+      "date": "2026-10-30T23:00:00.000Z",
+      "genres": [
+        "pop"
+      ],
+      "score": 14,
+      "url": "https://www.kaschemme.ch/programm/2510/diep"
+    },
+    {
+      "id": "event-1764868872764-d0f6e1d44f3de",
+      "club": "Nordstern",
+      "title": "Worakls",
+      "date": "2025-12-05T22:00:00.000Z",
+      "time": "23:00",
+      "genres": [
+        "electronic",
+        "emo"
+      ],
+      "score": 13,
+      "url": "https://tickets.nordstern.com/events/worakls-2025-12-05"
+    },
+    {
+      "id": "event-1764868872764-c54bf2db97d09",
+      "club": "Nordstern",
+      "title": "Aaron Hibell",
+      "date": "2025-12-06T22:00:00.000Z",
+      "time": "23:00",
+      "genres": [
+        "techno",
+        "house",
+        "electronic",
+        "trance"
+      ],
+      "score": 13,
+      "url": "https://tickets.nordstern.com/events/aaron-hibell-2025-12-06"
+    },
+    {
+      "id": "event-1764868872765-94e2e902bfe1c",
+      "club": "Nordstern",
+      "title": "Polyamor",
+      "date": "2025-12-12T11:00:00.000Z",
+      "time": "12:00",
+      "score": 13,
+      "url": "https://tickets.nordstern.com/events/polyamor"
+    },
+    {
+      "id": "event-1764868872765-b153c66e26a19",
+      "club": "Nordstern",
+      "title": "Ztanz",
+      "date": "2025-12-18T18:00:00.000Z",
+      "time": "19:00",
+      "genres": [
+        "emo"
+      ],
+      "score": 13,
+      "url": "https://tickets.nordstern.com/events/ztanz-2025-11-17"
+    },
+    {
+      "id": "event-1764868872765-7d08c3bdf2d1",
+      "club": "Nordstern",
+      "title": "Deborah De Luca",
+      "date": "2025-12-19T22:00:00.000Z",
+      "time": "23:00",
+      "genres": [
+        "techno",
+        "emo"
+      ],
+      "score": 13,
+      "url": "https://tickets.nordstern.com/events/deborah-de-luca-2025-12-19"
+    },
+    {
+      "id": "event-1764868872765-04767b905a30e",
+      "club": "Nordstern",
+      "title": "Boutique",
+      "date": "2025-12-20T12:00:00.000Z",
+      "time": "13:00",
+      "labels": [
+        "Nordstern"
+      ],
+      "genres": [
+        "house"
+      ],
+      "score": 13,
+      "url": "https://tickets.nordstern.com/events/boutique"
+    },
+    {
+      "id": "event-1764868872765-8f791fec0f36f",
+      "club": "Nordstern",
+      "title": "All Night Long",
+      "date": "2025-12-20T22:00:00.000Z",
+      "time": "23:00",
+      "score": 13,
+      "url": "https://tickets.nordstern.com/events/doma-all-night-long-2025-12-20"
+    },
+    {
+      "id": "event-1764868872765-1df5772df4ade",
+      "club": "Nordstern",
+      "title": "Cultura40",
+      "date": "2025-12-25T22:00:00.000Z",
+      "time": "23:00",
+      "genres": [
+        "electronic"
+      ],
+      "score": 13,
+      "url": "https://tickets.nordstern.com/events/cultura40"
+    },
+    {
+      "id": "event-1764868872765-f7d322cabe069",
+      "club": "Nordstern",
+      "title": "Flying Mystic",
+      "date": "2025-12-26T22:00:00.000Z",
+      "time": "23:00",
+      "genres": [
+        "psytrance",
+        "emo"
+      ],
+      "score": 13,
+      "url": "https://eventfrog.ch/de/p/party/goa/the-flying-mystic-nord-7386042731989042759.html"
+    },
+    {
+      "id": "event-1764868872766-4879a344bf071",
+      "club": "Nordstern",
+      "title": "NYE mit Hut & Brille",
+      "date": "2025-12-31T22:00:00.000Z",
+      "time": "23:00",
+      "genres": [
+        "trance"
+      ],
+      "score": 13,
+      "url": "https://tickets.nordstern.com/events/nye-mit-hut-und-brille"
+    },
+    {
+      "id": "event-1764868872766-e2cc38bacdcde",
+      "club": "Nordstern",
+      "title": "All Night Long",
+      "date": "2026-03-07T22:00:00.000Z",
+      "time": "23:00",
+      "score": 13,
+      "url": "https://nordstern.shop.bookinea.app/en/c/sebastian-konrad-all-night-long-1375"
+    },
+    {
+      "id": "event-1764868872766-548d4bfc710ac",
+      "club": "Nordstern",
+      "title": "Unreal Basel",
+      "date": "2026-03-27T19:00:00.000Z",
+      "time": "20:00",
+      "genres": [
+        "bass"
+      ],
+      "score": 13,
+      "url": "https://nordstern.shop.bookinea.app/de/c/unreal-basel-1115"
+    },
+    {
+      "id": "event-1764868872766-98837e5d84ac5",
+      "club": "Nordstern",
+      "title": "Moving City",
+      "date": "2026-03-28T19:00:00.000Z",
+      "time": "20:00",
+      "score": 13,
+      "url": "https://nordstern.shop.bookinea.app/de/c/moving-city-basel-1116"
+    },
+    {
+      "id": "event-1764868872766-51530f3abab97",
+      "club": "Nordstern",
+      "title": "Apollon Day One",
+      "date": "2026-07-24T12:00:00.000Z",
+      "time": "14:00",
+      "score": 13,
+      "url": "https://nordstern.shop.bookinea.app/de/c/apollon-at-theater-augusta-raurica-1253"
+    },
+    {
+      "id": "event-1764868872766-d1ac5830f89b5",
+      "club": "Nordstern",
+      "title": "Apollon Day Two",
+      "date": "2026-07-25T12:00:00.000Z",
+      "time": "14:00",
+      "score": 13,
+      "url": "https://nordstern.shop.bookinea.app/de/c/apollon-at-theater-augusta-raurica-1253"
+    },
+    {
+      "id": "event-1764868872770-0d740f225506e",
+      "club": "Kaschemme",
+      "title": "Housekeeping Vol. 03 - Trikot Special!",
+      "date": "2026-07-18T22:00:00.000Z",
+      "collectives": [
+        "Housekeeping"
+      ],
+      "genres": [
+        "house"
+      ],
+      "score": 12,
+      "url": "https://www.kaschemme.ch/programm/2025/7/19/housekeeping-vol-03-trikot-special"
+    },
+    {
+      "id": "event-1764868872767-fd06164f6a006",
+      "club": "Kaschemme",
+      "title": "ORO NEGRO presents: DJ MARCELLE",
+      "date": "2026-11-27T23:00:00.000Z",
+      "collectives": [
+        "presents"
+      ],
+      "labels": [
+        "ORO NEGRO"
+      ],
+      "score": 12,
+      "url": "https://www.kaschemme.ch/programm/2025/11/28/oro-negro-presents-dj-marcelle"
+    },
+    {
+      "id": "event-1764868872766-c6562210cc",
+      "club": "Kaschemme",
+      "title": "HITS N' SHITS / Vorweihnachtsfeierei",
+      "date": "2025-12-05T23:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/12/6/hits-n-shits-vorweihnachtsfeierei"
+    },
+    {
+      "id": "event-1764868872766-6c61a36b57e12",
+      "club": "Kaschemme",
+      "title": "RENDEZVOUS DER NACHT // 15 JAHRE KALEIKO",
+      "date": "2025-12-11T23:00:00.000Z",
+      "genres": [
+        "hiphop"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/12/12/rendezvous-der-nacht-15-jahre-kaleiko"
+    },
+    {
+      "id": "event-1764868872766-84724e5c8b344",
+      "club": "Kaschemme",
+      "title": "FREE ALL ANTIFAS!",
+      "date": "2025-12-12T23:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/1312/freeallantifas"
+    },
+    {
+      "id": "event-1764868872767-38c5fda1acc97",
+      "club": "Kaschemme",
+      "title": "WUZA // WEEKENDER",
+      "date": "2025-12-19T23:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/12/20/wuza-weekender"
+    },
+    {
+      "id": "event-1764868872767-e27686bd82d62",
+      "club": "Kaschemme",
+      "title": "SUPERSONIC //  X-MAS EDITION",
+      "date": "2025-12-25T23:00:00.000Z",
+      "collectives": [
+        "SUPERSONIC"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/12/26/supersonic-x-mas-edition"
+    },
+    {
+      "id": "event-1764868872770-7b39d88b5b3cf",
+      "club": "Kaschemme",
+      "title": "NICA // OPEN AIR",
+      "date": "2026-06-20T22:00:00.000Z",
+      "collectives": [
+        "NICA"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2506/nicaopenair"
+    },
+    {
+      "id": "event-1764868872770-c974127e9e0c8",
+      "club": "Kaschemme",
+      "title": "BASS &amp; BOUNCE",
+      "date": "2026-06-25T22:00:00.000Z",
+      "genres": [
+        "bass"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2506/bassbounce"
+    },
+    {
+      "id": "event-1764868872770-f7e04bf69eccd",
+      "club": "Kaschemme",
+      "title": "EMO NIGHT - SUMMER AT THE DISCO",
+      "date": "2026-07-11T22:00:00.000Z",
+      "collectives": [
+        "EMO NIGHT"
+      ],
+      "genres": [
+        "emo"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2507/emonight"
+    },
+    {
+      "id": "event-1764868872769-7abbf7ce09ce9",
+      "club": "Kaschemme",
+      "title": "SUMMER RAVE // Day &amp; Night",
+      "date": "2026-07-25T22:00:00.000Z",
+      "collectives": [
+        "Night"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2507/summerrave"
+    },
+    {
+      "id": "event-1764868872769-e6e535acc99c1",
+      "club": "Kaschemme",
+      "title": "HITS N SHITS",
+      "date": "2026-08-01T22:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/8/2/hits-n-shits"
+    },
+    {
+      "id": "event-1764868872769-7b5a6bcd1c5c1",
+      "club": "Kaschemme",
+      "title": "NICA // OPEN AIR",
+      "date": "2026-08-08T22:00:00.000Z",
+      "collectives": [
+        "NICA"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2508/openair"
+    },
+    {
+      "id": "event-1764868872769-4bdb88348e892",
+      "club": "Kaschemme",
+      "title": "Daisy Chain presents: HORROR VACUI (ITA)",
+      "date": "2026-08-20T22:00:00.000Z",
+      "collectives": [
+        "presents"
+      ],
+      "labels": [
+        "Daisy Chain"
+      ],
+      "genres": [
+        "rock",
+        "goth"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/8/21/daisy-chain-presents-horror-vacui-ita"
+    },
+    {
+      "id": "event-1764868872769-486c1da368b4e",
+      "club": "Kaschemme",
+      "title": "OPENAIR // QUEERSCHI x CALOROSA",
+      "date": "2026-08-21T22:00:00.000Z",
+      "collectives": [
+        "x"
+      ],
+      "labels": [
+        "QUEERSCHI"
+      ],
+      "genres": [
+        "dubstep",
+        "bass",
+        "reggae"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2508/queerschicalorosoa"
+    },
+    {
+      "id": "event-1764868872769-24c479eca10c6",
+      "club": "Kaschemme",
+      "title": "VIERNULLVIER - Sommerfest",
+      "date": "2026-09-11T22:00:00.000Z",
+      "genres": [
+        "house"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2509/viernullvier-sommerfest"
+    },
+    {
+      "id": "event-1764868872769-bd1c72da274f3",
+      "club": "Kaschemme",
+      "title": "OPENAIR // Season Closing",
+      "date": "2026-09-18T22:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2509/openair-seasonclosing"
+    },
+    {
+      "id": "event-1764868872769-6f88e4663f337",
+      "club": "Kaschemme",
+      "title": "NACHTKATZE präsentiert BENZIN",
+      "date": "2026-09-25T22:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2509/benzin"
+    },
+    {
+      "id": "event-1764868872769-bf87593dd466a",
+      "club": "Kaschemme",
+      "title": "ASTRO:LIBRA",
+      "date": "2026-10-03T22:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/10/4/astro-libra"
+    },
+    {
+      "id": "event-1764868872768-c27d7065e1be9",
+      "club": "Kaschemme",
+      "title": "ANCST",
+      "date": "2026-10-08T22:00:00.000Z",
+      "genres": [
+        "metal",
+        "ambient"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/10/9/ancst"
+    },
+    {
+      "id": "event-1764868872768-93ab8b8470b76",
+      "club": "Kaschemme",
+      "title": "HITS N' SHITS",
+      "date": "2026-10-17T22:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/10/18/hits-n-shits"
+    },
+    {
+      "id": "event-1764868872768-8a359f3998f7c",
+      "club": "Kaschemme",
+      "title": "CLUB EDENLOS",
+      "date": "2026-10-24T22:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/10/25/edenlos"
+    },
+    {
+      "id": "event-1764868872768-dba667e62d3d",
+      "club": "Kaschemme",
+      "title": "COREBOUND",
+      "date": "2026-10-28T23:00:00.000Z",
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/10/29/corebound"
+    },
+    {
+      "id": "event-1764868872768-121e890a3c6cb",
+      "club": "Kaschemme",
+      "title": "INDIE ROCK // KASCHEMME",
+      "date": "2026-10-31T23:00:00.000Z",
+      "genres": [
+        "indie",
+        "rock"
+      ],
+      "score": 10,
+      "url": "https://www.kaschemme.ch/programm/2025/11/1/indie-rock"
+    }
+  ],
+  "artists": [
+    {
+      "name": "OMAR DAHL live",
+      "eventCount": 1,
+      "rating": 1.7,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "genres": [
+        "electronic"
+      ]
+    },
+    {
+      "name": "FC KLEINSTADT &amp; COROKIA",
+      "eventCount": 1,
+      "rating": 1.7,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "genres": [
+        "hardstyle"
+      ]
+    },
+    {
+      "name": "SUBKEY &amp; RUFFCUT",
+      "eventCount": 1,
+      "rating": 1.7,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "genres": [
+        "drum & bass"
+      ]
+    },
+    {
+      "name": "DANDARA",
+      "eventCount": 1,
+      "rating": 1.7,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "genres": []
+    },
+    {
+      "name": "Jelena",
+      "eventCount": 1,
+      "rating": 1.7,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "genres": [
+        "bass"
+      ]
+    },
+    {
+      "name": "Mille Scuse &amp; Dirk Dollar",
+      "eventCount": 1,
+      "rating": 1.7,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "genres": [
+        "indie"
+      ]
+    },
+    {
+      "name": "TWIN NOIR &amp; LETTEN 94",
+      "eventCount": 1,
+      "rating": 1.7,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "genres": [
+        "rock"
+      ]
+    },
+    {
+      "name": "NICA",
+      "eventCount": 1,
+      "rating": 1.7,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "genres": []
+    },
+    {
+      "name": "Phill Turner &amp; Spiralek",
+      "eventCount": 1,
+      "rating": 1.7,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "genres": [
+        "bass"
+      ]
+    }
+  ],
+  "collectives": [
+    {
+      "name": "BASS ARCADE",
+      "eventCount": 2,
+      "rating": 3.0000000000000004,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "BASS ARCADE",
+      "genres": [
+        "drum & bass",
+        "bass"
+      ]
+    },
+    {
+      "name": "WEIL SONNTAG",
+      "eventCount": 2,
+      "rating": 3.0000000000000004,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "WEIL SONNTAG",
+      "genres": []
+    },
+    {
+      "name": "presents",
+      "eventCount": 2,
+      "rating": 2.8000000000000003,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "presents",
+      "genres": [
+        "rock",
+        "goth"
+      ]
+    },
+    {
+      "name": "x",
+      "eventCount": 2,
+      "rating": 2.8000000000000003,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "x",
+      "genres": [
+        "dubstep",
+        "bass",
+        "reggae"
+      ]
+    },
+    {
+      "name": "NICA",
+      "eventCount": 2,
+      "rating": 2.8000000000000003,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "NICA",
+      "genres": []
+    },
+    {
+      "name": "DER INDIE SLOT",
+      "eventCount": 1,
+      "rating": 2.6,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "DER INDIE SLOT",
+      "genres": [
+        "indie",
+        "rock"
+      ]
+    },
+    {
+      "name": "BONEFLOWER",
+      "eventCount": 1,
+      "rating": 2.6,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "BONEFLOWER",
+      "genres": [
+        "rock",
+        "goth"
+      ]
+    },
+    {
+      "name": "SUPERSONIC",
+      "eventCount": 1,
+      "rating": 2.5,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "SUPERSONIC",
+      "genres": []
+    },
+    {
+      "name": "Night",
+      "eventCount": 1,
+      "rating": 2.5,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "Night",
+      "genres": []
+    },
+    {
+      "name": "Housekeeping",
+      "eventCount": 1,
+      "rating": 2.5,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "Housekeeping",
+      "genres": [
+        "house"
+      ]
+    },
+    {
+      "name": "EMO NIGHT",
+      "eventCount": 1,
+      "rating": 2.5,
+      "clubs": [
+        "Kaschemme"
+      ],
+      "eventSeries": "EMO NIGHT",
+      "genres": [
+        "emo"
+      ]
+    }
+  ],
+  "labels": [
+    {
+      "name": "Nordstern",
+      "eventCount": 1,
+      "rating": 2.5,
+      "artists": 0,
+      "clubs": [
+        "Nordstern"
+      ]
+    },
+    {
+      "name": "ORO NEGRO",
+      "eventCount": 1,
+      "rating": 2.5,
+      "artists": 0,
+      "clubs": [
+        "Kaschemme"
+      ]
+    },
+    {
+      "name": "LA BECQUE",
+      "eventCount": 1,
+      "rating": 2.5,
+      "artists": 0,
+      "clubs": [
+        "Kaschemme"
+      ]
+    },
+    {
+      "name": "QUEERSCHI",
+      "eventCount": 1,
+      "rating": 2.5,
+      "artists": 0,
+      "clubs": [
+        "Kaschemme"
+      ]
+    },
+    {
+      "name": "Daisy Chain",
+      "eventCount": 1,
+      "rating": 2.5,
+      "artists": 0,
+      "clubs": [
+        "Kaschemme"
+      ]
+    }
+  ]
+}

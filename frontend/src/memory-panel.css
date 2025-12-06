@@ -1,0 +1,538 @@
+/* ===================================
+   Memory Panel (Morphing from top right corner, like Workers Panel)
+   =================================== */
+
+.memory-panel {
+  position: fixed;
+  right: 0;
+  top: 0; /* Positioned at the top */
+  height: 90vh; /* 90% of viewport height */
+  width: 80vw; /* 80% of viewport width */
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.memory-panel * {
+  pointer-events: auto;
+}
+
+/* Morphing Button/Header */
+.memory-panel-morph {
+  position: absolute;
+  right: 0;
+  top: 0; /* Flush with top edge */
+  width: 48px;
+  height: 48px;
+  border-radius: 0 0 0 24px; /* Bottom-left radius only, half of width/height */
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-right: none; /* No border on right */
+  border-top: none; /* No border on top */
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    width 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, /* Delay for reverse */
+    height 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, /* Delay for reverse */
+    border-radius 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, /* Delay for reverse */
+    background 0.6s ease 0.6s, /* Delay for reverse */
+    box-shadow 0.6s ease 0.6s; /* Delay for reverse */
+  z-index: 1;
+  overflow: hidden;
+}
+
+.memory-panel-morph:hover:not(.memory-panel-morph-expanded) {
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+.memory-panel-morph-expanded {
+  width: 80vw; /* 80% of viewport width */
+  height: 56px; /* Fixed height for single-line header */
+  border-radius: 0; /* No radius when expanded */
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-right: none;
+  border-top: none;
+  box-shadow: none;
+  flex-direction: row; /* Single line layout */
+  transition:
+    width 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0s, /* No delay for forward */
+    height 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0s, /* No delay for forward */
+    border-radius 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0s, /* No delay for forward */
+    background 0.6s ease 0s, /* No delay for forward */
+    box-shadow 0.6s ease 0s; /* No delay for forward */
+}
+
+/* Header Content (inside morphing button) */
+.memory-panel-morph-header {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centered in closed state */
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  flex-shrink: 0;
+  transition:
+    gap 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    justify-content 0.6s ease,
+    padding 0.6s ease;
+}
+
+.memory-panel-morph-expanded .memory-panel-morph-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; /* Links, Mitte, Rechts */
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 0 12px; /* Nur links Padding, rechts 0 */
+  height: 100%;
+  flex-shrink: 0;
+  width: 100%;
+  overflow: visible;
+}
+
+.memory-panel-morph-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: gap 0.6s ease, justify-content 0.6s ease;
+}
+
+.memory-panel-morph-expanded .memory-panel-morph-content {
+  gap: var(--spacing-sm);
+  justify-content: flex-start;
+}
+
+/* Icon */
+.memory-panel-morph:not(.memory-panel-morph-expanded) .memory-panel-morph-header svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.memory-panel-morph-expanded .memory-panel-morph-header svg {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+}
+
+.memory-panel-morph-header svg {
+  color: var(--accent);
+  width: 20px;
+  height: 20px;
+  opacity: 0.7;
+  flex-shrink: 0;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s; /* Delay for reverse */
+}
+
+.memory-panel-morph:hover:not(.memory-panel-morph-expanded) .memory-panel-morph-header svg {
+  opacity: 1;
+}
+
+.memory-panel-morph-expanded .memory-panel-morph-header svg {
+  opacity: 1;
+  width: 18px;
+  height: 18px;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0s; /* No delay for forward */
+}
+
+/* Title */
+.memory-panel-morph-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  transform: translateX(-10px);
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease 0.2s,
+    transform 0.3s ease 0.2s,
+    max-width 0.3s ease 0.2s; /* Delay for forward */
+}
+
+.memory-panel-morph-expanded .memory-panel-morph-title {
+  opacity: 1;
+  max-width: 200px;
+  transform: translateX(0);
+  pointer-events: auto;
+  transition:
+    opacity 0.3s ease 0.2s,
+    transform 0.3s ease 0.2s,
+    max-width 0.3s ease 0.2s; /* No delay for reverse */
+}
+
+/* Count */
+.memory-panel-morph-count {
+  padding: 2px 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  transform: translateX(-10px);
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease 0.25s,
+    transform 0.3s ease 0.25s,
+    max-width 0.3s ease 0.25s; /* Delay for forward */
+}
+
+.memory-panel-morph-expanded .memory-panel-morph-count {
+  opacity: 1;
+  max-width: 100px;
+  transform: translateX(0);
+  pointer-events: auto;
+  transition:
+    opacity 0.3s ease 0.25s,
+    transform 0.3s ease 0.25s,
+    max-width 0.3s ease 0.25s; /* No delay for reverse */
+}
+
+/* Panel Body - Slides down from header */
+.memory-panel-body {
+  position: absolute;
+  top: 0; /* Will be positioned below the morphing header dynamically */
+  right: 0;
+  width: 80vw; /* 80% of viewport width */
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); /* Border on bottom */
+  border-top: 1px solid var(--border); /* Border on top */
+  border-radius: 0; /* No radius */
+  overflow: hidden;
+  max-height: 0; /* Hidden by default */
+  opacity: 0;
+  transition:
+    max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0s, /* No delay for reverse */
+    opacity 0.4s ease 0s, /* No delay for reverse */
+    top 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0s; /* No delay for reverse */
+  display: flex;
+  flex-direction: column;
+}
+
+.memory-panel-open .memory-panel-body {
+  max-height: calc(90vh - 56px); /* 90vh minus header (56px) */
+  opacity: 1;
+  top: 56px; /* Positioned below the header */
+  transition:
+    max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, /* Delay for forward */
+    opacity 0.4s ease 0.8s, /* Delay for forward */
+    top 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.6s; /* Delay for forward */
+}
+
+/* Filters in morphing header */
+.memory-panel-morph-filters {
+  display: none; /* Komplett verstecken wenn collapsed */
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0; /* Nicht komprimieren */
+}
+
+.memory-panel-morph-expanded .memory-panel-morph-filters {
+  display: flex; /* Zeigen wenn expanded */
+}
+
+.memory-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  background: transparent; /* Kein Hintergrund */
+  border-radius: 0;
+  font-size: 11px;
+  flex-shrink: 0;
+  justify-self: end;
+  align-items: flex-end;
+  margin-right: 0; /* Kein Abstand zur rechten Kante */
+}
+
+.memory-status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap; /* Kein Umbruch */
+}
+
+.memory-status-indicator {
+  font-size: 12px; /* Kleinerer Dot */
+  line-height: 1;
+}
+
+.memory-status-indicator.connected {
+  color: #22c55e;
+}
+
+.memory-status-indicator.disconnected {
+  color: #ef4444;
+}
+
+.memory-status-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0px; /* Kein Gap zwischen Label und Info */
+}
+
+.memory-status-label {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 10px; /* Noch kleiner */
+}
+
+.memory-status-info {
+  font-size: 9px; /* Noch kleiner */
+  color: var(--text-muted);
+}
+
+.memory-tabs {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  background: var(--bg-elevated);
+  padding: 2px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  justify-self: center; /* In der Grid-Mitte zentrieren */
+}
+
+.memory-tab {
+  padding: 6px 14px; /* Größeres Padding */
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px; /* Größere Schrift */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.memory-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.memory-tab.active {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.memory-filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.memory-filter-checkbox:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.memory-panel-body-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+}
+
+.memory-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+}
+
+.memory-empty-icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.memory-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.memory-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  transition: all 0.2s ease;
+}
+
+.memory-item:hover {
+  border-color: var(--accent);
+}
+
+.memory-item-compaktified {
+  border-left: 3px solid #c70;
+}
+
+.memory-item-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+  gap: var(--spacing-sm);
+}
+
+.memory-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.memory-item-badges {
+  display: flex;
+  gap: 4px;
+}
+
+.memory-badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.memory-badge-fact {
+  background: rgba(34, 197, 94, 0.2);
+  color: rgb(34, 197, 94);
+}
+
+.memory-badge-preference {
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(59, 130, 246);
+}
+
+.memory-badge-summary {
+  background: rgba(139, 92, 246, 0.2);
+  color: rgb(139, 92, 246);
+}
+
+.memory-badge-episode {
+  background: rgba(245, 158, 11, 0.2);
+  color: rgb(245, 158, 11);
+}
+
+.memory-badge-compaktified {
+  background: rgba(204, 119, 0, 0.2);
+  color: #c70;
+}
+
+.memory-item-content {
+  font-size: 13px;
+  color: var(--text-soft);
+  line-height: 1.5;
+  margin-bottom: var(--spacing-sm);
+}
+
+.memory-item-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-sm);
+}
+
+.memory-tag {
+  padding: 2px 6px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.memory-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.memory-sources-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.memory-sources-toggle:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent);
+}
+
+.memory-sources {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.memory-source {
+  padding: var(--spacing-xs);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+}
+
+.memory-source-header {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.memory-source-type {
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.memory-source-type-message {
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(59, 130, 246);
+}
+
+.memory-source-excerpt {
+  color: var(--text-muted);
+  font-style: italic;
+}
+

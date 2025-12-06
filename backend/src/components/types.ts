@@ -13,7 +13,6 @@ import type { SourceDescriptor, SourceKind, SourceMessage } from "./sources/type
 // Re-export for convenience
 export type { SourceDescriptor, SourceKind, SourceMessage };
 export type { ToolResult, ToolContext, ToolExample };
-export type { WorkerInterface, WorkerJob } from "./base/AbstractWorker";
 
 /**
  * Service abstraction: System-relevant services

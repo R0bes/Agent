@@ -6,17 +6,31 @@
  * - Provide correct endpoints
  */
 import { registerTool } from "./toolRegistry";
-import { logInfo, logDebug, logError } from "../../utils/logger";
+import { logInfo, logDebug, logError, logWarn } from "../../utils/logger";
 export class AbstractTool {
     /**
      * Constructor automatically registers the tool
+     * Uses queueMicrotask to ensure registration happens after property initialization
      */
     constructor() {
-        // Register this tool with the registry
-        registerTool(this);
-        logInfo("Tool registered", {
-            toolName: this.name,
-            toolId: this.name
+        // Register this tool with the registry after property initialization
+        // Use queueMicrotask to ensure all properties are set before registration
+        queueMicrotask(() => {
+            if (!this.name) {
+                logWarn("AbstractTool: Tool name is undefined, skipping registration", {
+                    toolClass: this.constructor.name
+                });
+                return;
+            }
+            try {
+                registerTool(this);
+            }
+            catch (err) {
+                logError("AbstractTool: Failed to register tool", err, {
+                    toolName: this.name,
+                    toolClass: this.constructor.name
+                });
+            }
         });
     }
     /**

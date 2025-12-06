@@ -7,7 +7,7 @@
 
 import { AbstractTool } from "../../base/AbstractTool";
 import type { Component, ToolContext, ToolResult } from "../../types";
-import { workerEngine } from "../../worker/engine";
+import { bullMQWorkerEngine } from "../../worker/bullmq-engine";
 
 /**
  * Scheduler Tool implementation
@@ -24,13 +24,23 @@ class SchedulerToolAdapter extends AbstractTool {
         enum: ["memory_compaction"],
         description: "The kind of work to schedule"
       },
+      mode: {
+        type: "string",
+        enum: ["auto", "manual", "topic_change"],
+        description: "Compaction mode: manual (user-requested), auto (system-triggered), topic_change (topic switch detected). Default: manual"
+      },
+      priority: {
+        type: "string",
+        enum: ["low", "normal", "high"],
+        description: "Job priority level (default: normal)"
+      },
       userId: {
         type: "string",
         description: "Optional user ID override"
       },
       conversationId: {
         type: "string",
-        description: "Optional conversation ID override"
+        description: "Conversation ID for memory compaction (optional, uses current conversation if not provided)"
       },
       title: {
         type: "string",
@@ -55,7 +65,23 @@ class SchedulerToolAdapter extends AbstractTool {
           workerName: "memory_compaction_worker"
         }
       },
-      description: "Schedule a memory compaction job"
+      description: "Schedule a memory compaction job with default mode (manual)"
+    },
+    {
+      input: {
+        kind: "memory_compaction",
+        mode: "manual",
+        priority: "high"
+      },
+      output: {
+        ok: true,
+        data: {
+          scheduled: true,
+          jobId: "wjob-1234567890-abc124",
+          workerName: "memory_compaction_worker"
+        }
+      },
+      description: "Schedule a high-priority manual memory compaction"
     }
   ];
 
@@ -64,11 +90,20 @@ class SchedulerToolAdapter extends AbstractTool {
 
     if (kind === "memory_compaction") {
       try {
-        const job = await workerEngine.enqueue(
+        // Map priority string to number: high=1, normal=0, low=-1
+        const priorityMap: Record<string, number> = {
+          high: 1,
+          normal: 0,
+          low: -1
+        };
+        const priority = priorityMap[args.priority || "normal"] || 0;
+
+        const job = await bullMQWorkerEngine.enqueue(
           "memory_compaction_worker",
           {
             userId: args.userId ?? ctx.userId,
             conversationId: args.conversationId ?? ctx.conversationId,
+            mode: args.mode ?? "manual",
             title: args.title,
             content: args.content
           },
@@ -78,14 +113,15 @@ class SchedulerToolAdapter extends AbstractTool {
               ...ctx.source,
               kind: ctx.source.kind === "system" ? "scheduler" : ctx.source.kind
             }
-          }
+          },
+          { priority }
         );
         return {
           ok: true,
           data: {
             scheduled: true,
             jobId: job.id,
-            workerName: job.workerName
+            workerName: "memory_compaction_worker"
           }
         };
       } catch (err: any) {

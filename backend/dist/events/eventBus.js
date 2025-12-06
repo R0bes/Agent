@@ -1,4 +1,5 @@
-import { logDebug, logInfo, logError } from "../utils/logger";
+// Note: EventBus does not log via logger to avoid circular logging
+// Logs are published via event bus, which the LogManager handles
 class EventBus {
     constructor() {
         this.handlers = new Map();
@@ -8,30 +9,13 @@ class EventBus {
             this.handlers.set(type, new Set());
         }
         this.handlers.get(type).add(handler);
-        logDebug("EventBus: Handler registered", {
-            eventType: type,
-            handlerCount: this.handlers.get(type).size
-        });
     }
     off(type, handler) {
-        const removed = this.handlers.get(type)?.delete(handler);
-        if (removed) {
-            logDebug("EventBus: Handler unregistered", {
-                eventType: type,
-                handlerCount: this.handlers.get(type)?.size || 0
-            });
-        }
+        this.handlers.get(type)?.delete(handler);
     }
     async emit(event) {
         const handlers = this.handlers.get(event.type);
-        logDebug("EventBus: Event emitted", {
-            eventType: event.type,
-            handlerCount: handlers?.size || 0
-        });
         if (!handlers || handlers.size === 0) {
-            logDebug("EventBus: No handlers for event type", {
-                eventType: event.type
-            });
             return;
         }
         const startTime = Date.now();
@@ -44,19 +28,18 @@ class EventBus {
             }
             catch (err) {
                 errorCount++;
-                logError("EventBus: Handler error", err, {
-                    eventType: event.type
-                });
+                // Only log non-log events to avoid circular logging
+                if (!event.type.startsWith("log_")) {
+                    // Use console directly to avoid circular dependency
+                    console.error(`EventBus: Handler error for ${event.type}:`, err);
+                }
             }
         }
-        const duration = Date.now() - startTime;
-        logInfo("EventBus: Event processed", {
-            eventType: event.type,
-            handlerCount: handlers.size,
-            successCount,
-            errorCount,
-            duration: `${duration}ms`
-        });
+        // Only log non-log events to avoid circular logging
+        if (!event.type.startsWith("log_") && process.env.DEBUG_EVENTBUS === "true") {
+            const duration = Date.now() - startTime;
+            console.debug(`EventBus: ${event.type} processed in ${duration}ms (${successCount} success, ${errorCount} errors)`);
+        }
     }
 }
 export const eventBus = new EventBus();

@@ -1,12 +1,9 @@
+import { AbstractTool } from "../../base/AbstractTool";
 /**
  * Echo Tool Component
  *
  * Implements Tool interface using AbstractTool base class.
- * - Tool: Echoes back text with context information for debugging
- */
-import { AbstractTool } from "../../base/AbstractTool";
-/**
- * Echo Tool implementation
+ * - Tool: Echoes back text with context information
  */
 class EchoTool extends AbstractTool {
     constructor() {
@@ -74,6 +71,6 @@ const echoToolInstance = new EchoTool();
 export const echoToolComponent = {
     id: "echo-tool",
     name: "Echo Tool Component",
-    description: "Echoes back text with context information for debugging",
+    description: "Echoes back text with context information",
     tool: echoToolInstance
 };

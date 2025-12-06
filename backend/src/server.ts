@@ -1,13 +1,18 @@
+
 import Fastify from "fastify";
-import websocketPlugin from "@fastify/websocket";
+import fastifySocketIO from "fastify-socket.io";
 import cors from "@fastify/cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerChatRoutes } from "./api/chat";
 import { registerJobsRoutes } from "./api/jobs";
 import { registerMemoryRoutes } from "./api/memory";
+import { registerMessagesRoutes } from "./api/messages";
 import { registerToolsRoutes } from "./api/tools";
 import { registerLogsRoutes } from "./api/logs";
+import { registerWorkersRoutes } from "./api/workers";
+import { registerConversationRoutes } from "./api/conversation";
+import { registerSchedulerRoutes } from "./api/scheduler";
 import { registerComponent } from "./components/registry";
 import {
   llmComponent,
@@ -18,12 +23,15 @@ import {
   websiteSearchToolComponent,
   schedulerToolComponent,
   workerManagerToolComponent,
-  toolRegistryComponent
+  guiControlToolComponent,
+  toolboxComponent
 } from "./components";
 
-import { workerEngine } from "./components/worker/engine";
+import { bullMQWorkerEngine } from "./components/worker/bullmq-engine";
 import { memoryCompactionWorkerComponent } from "./components/worker/memory";
+import { taskWorkerComponent } from "./components/worker/task";
 import { eventBus } from "./events/eventBus";
+import { scheduleStore } from "./models/scheduleStore";
 import { logInfo, logDebug, logError, logWarn } from "./utils/logger";
 import { initializeLogManager } from "./utils/logManager";
 import { createFastifyLogger } from "./utils/fastifyLogger";
@@ -56,86 +64,15 @@ app.register(cors, {
   credentials: true
 });
 
-app.register(websocketPlugin);
-
-logInfo("Server: Fastify, CORS and WebSocket plugin registered");
-
-type WSClient = {
-  send: (data: string) => boolean;
-  socket: any;
-};
-
-const wsClients = new Set<WSClient>();
-
-app.register(async function (fastify) {
-  fastify.get("/ws", { websocket: true }, (connection /* SocketStream */, req) => {
-    logInfo("WebSocket: New connection", {
-      url: req.url,
-      remoteAddress: req.socket?.remoteAddress || req.ip || "unknown",
-      connectionType: connection.constructor?.name,
-      connectionKeys: Object.keys(connection).filter(k => !k.startsWith('_')).slice(0, 10)
-    });
-
-    // Debug: Log socket type and properties
-    const socket = connection.socket;
-    logDebug("WebSocket: Socket details", {
-      socketType: socket?.constructor?.name,
-      hasSend: typeof socket?.send === "function",
-      hasOn: typeof socket?.on === "function",
-      readyState: socket?.readyState,
-      socketKeys: socket ? Object.keys(socket).filter(k => !k.startsWith('_')).slice(0, 10) : []
-    });
-
-    const client: WSClient = {
-      send: (data: string) => {
-        try {
-          if (socket.readyState === 1) { // OPEN
-            socket.send(data);
-            return true;
-          } else {
-            return false;
-          }
-        } catch (err) {
-          logError("WebSocket: Send error", err);
-          return false;
-        }
-      },
-      socket: socket
-    };
-
-    wsClients.add(client);
-    logInfo(`WebSocket: Client added - Total: ${wsClients.size}`);
-
-    // Send welcome message
-    client.send(JSON.stringify({ 
-      type: "connection_established",
-      timestamp: new Date().toISOString()
-    }));
-
-    socket.on("message", (message: Buffer) => {
-      try {
-        const data = JSON.parse(message.toString());
-        logDebug("WebSocket: Message received", { data });
-      } catch (err) {
-        logDebug("WebSocket: Non-JSON message", { message: message.toString().slice(0, 100) });
-      }
-    });
-
-    socket.on("close", (code: number, reason: Buffer) => {
-      wsClients.delete(client);
-      logInfo("WebSocket: Client disconnected", {
-        code,
-        reason: reason?.toString() || "No reason",
-        remainingClients: wsClients.size
-      });
-    });
-
-    socket.on("error", (error: Error) => {
-      logError("WebSocket: Error", error);
-      wsClients.delete(client);
-    });
-  });
+// Register Socket.IO
+await app.register(fastifySocketIO, {
+  cors: { origin: "*" }
 });
+
+logInfo("Server: Fastify, CORS and Socket.IO registered");
+
+// Socket.IO clients tracking
+const socketClients = new Map<string, any>();
 
 // Listen for source_message events and process them through persona
 import { handleSourceMessage } from "./components/persona";
@@ -170,42 +107,29 @@ eventBus.on("source_message", async (event) => {
   }
 });
 
-// bridge eventBus -> WebSocket for all relevant events
-const eventTypes = ["message_created", "job_updated", "memory_updated"] as const;
-for (const type of eventTypes) {
-  eventBus.on(type, (event) => {
-    const payload = JSON.stringify(event);
-    logDebug("Server: Broadcasting event to WebSocket clients", {
-      eventType: type,
-      clientCount: wsClients.size
-    });
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const client of wsClients) {
-      try {
-        client.send(payload);
-        successCount++;
-      } catch (err) {
-        errorCount++;
-        logDebug("Server: Failed to send to WebSocket client", {
-          eventType: type,
-          error: err instanceof Error ? err.message : String(err)
-        });
-        // ignore send errors; closed sockets are removed on close
-      }
-    }
-
-    if (successCount > 0 || errorCount > 0) {
-      logDebug("Server: WebSocket broadcast completed", {
-        eventType: type,
-        successCount,
-        errorCount,
-        totalClients: wsClients.size
-      });
-    }
+function broadcastToClients(event: any, eventType: string) {
+  logDebug("Server: Broadcasting to Socket.IO clients", {
+    eventType,
+    clientCount: socketClients.size
   });
+  
+  app.io.emit(eventType, event);
+}
+
+// Function to send avatar command to all connected clients
+export function sendAvatarCommand(command: { command: 'move' | 'capability' | 'expression' | 'action'; target?: { x: number; y: number }; capabilityId?: string; args?: Record<string, any> }) {
+  if (!app.io) {
+    logWarn("Server: Cannot send avatar command - Socket.IO not initialized");
+    return;
+  }
+  logDebug("Server: Sending avatar command", { command, clientCount: socketClients.size });
+  app.io.emit('avatar_command', command);
+}
+
+// Bridge eventBus -> Socket.IO for all relevant events
+const eventTypes = ["message_created", "job_updated", "memory_updated", "gui_action"] as const;
+for (const type of eventTypes) {
+  eventBus.on(type, (event) => broadcastToClients(event, type));
 }
 
 app.get("/health", async (req) => {
@@ -216,10 +140,10 @@ app.get("/health", async (req) => {
 });
 
 // Register all components
-// Register tool registry first so it can manage other tools
+// Register toolbox first so it can manage other tools
 logInfo("Server: Registering components");
-registerComponent(toolRegistryComponent);
-logDebug("Server: Tool registry component registered");
+registerComponent(toolboxComponent);
+logDebug("Server: Toolbox component registered");
 registerComponent(llmComponent);
 logDebug("Server: LLM component registered");
 registerComponent(personaComponent);
@@ -236,6 +160,8 @@ registerComponent(schedulerToolComponent);
 logDebug("Server: Scheduler tool component registered");
 registerComponent(workerManagerToolComponent);
 logDebug("Server: Worker manager tool component registered");
+registerComponent(guiControlToolComponent);
+logDebug("Server: GUI control tool component registered");
 
 // Try to load event crawler component (requires playwright)
 try {
@@ -256,13 +182,71 @@ try {
 logInfo("Server: Registering workers");
 registerComponent(memoryCompactionWorkerComponent);
 logDebug("Server: Memory compaction worker component registered");
-// Register worker with engine
+// Register workers with engine
 const memoryWorker = memoryCompactionWorkerComponent.worker;
 if (memoryWorker) {
-  workerEngine.registerWorker(memoryWorker);
+  bullMQWorkerEngine.registerWorker(memoryWorker as any);
   logDebug("Server: Memory compaction worker registered with engine");
 }
+
+const taskWorker = taskWorkerComponent.worker;
+if (taskWorker) {
+  bullMQWorkerEngine.registerWorker(taskWorker as any);
+  logDebug("Server: Task worker registered with engine");
+}
+
+// Register tool execution worker
+try {
+  const { toolExecutionWorkerComponent } = await import("./components/worker/toolExecution/index.js");
+  registerComponent(toolExecutionWorkerComponent);
+  logDebug("Server: Tool execution worker component registered");
+  const toolExecutionWorker = toolExecutionWorkerComponent.worker;
+  if (toolExecutionWorker) {
+    bullMQWorkerEngine.registerWorker(toolExecutionWorker as any);
+    logDebug("Server: Tool execution worker registered with engine");
+  }
+} catch (err) {
+  logWarn("Server: Tool execution worker registration failed", {
+    error: err instanceof Error ? err.message : String(err)
+  });
+}
+
 logInfo("Server: All workers registered");
+
+// Initialize database
+logInfo("Server: Initializing database");
+try {
+  const { createPostgresPool } = await import("./database/postgres.js");
+  const { runMigrations } = await import("./database/migrations.js");
+  
+  const pool = await createPostgresPool();
+  await runMigrations(pool);
+  
+  logInfo("Server: Database initialized successfully");
+
+  // Initialize Qdrant vector database
+  logInfo("Server: Initializing Qdrant");
+  try {
+    const { qdrantClient } = await import("./components/memory/qdrantClient.js");
+    const { embeddingClient } = await import("./components/llm/embeddingClient.js");
+    
+    // Get embedding dimension from model
+    const dimension = await embeddingClient.getDimension();
+    await qdrantClient.initialize(dimension);
+    
+    logInfo("Server: Qdrant initialized successfully", {
+      dimension,
+      collection: "memories",
+      model: embeddingClient.getModel()
+    });
+  } catch (qdrantErr) {
+    logError("Server: Qdrant initialization failed", qdrantErr);
+    logWarn("Server: Continuing without Qdrant - semantic search will not work");
+  }
+} catch (err) {
+  logError("Server: Database initialization failed", err);
+  logWarn("Server: Continuing without database - memory/message features may not work");
+}
 
 // Register routes
 logInfo("Server: Registering API routes");
@@ -272,13 +256,111 @@ await registerJobsRoutes(app);
 logDebug("Server: Jobs routes registered");
 await registerMemoryRoutes(app);
 logDebug("Server: Memory routes registered");
+await registerMessagesRoutes(app);
+logDebug("Server: Messages routes registered");
 await registerToolsRoutes(app);
 logDebug("Server: Tools routes registered");
+await registerWorkersRoutes(app);
+logDebug("Server: Workers routes registered");
+await registerSchedulerRoutes(app);
+logDebug("Server: Scheduler routes registered");
 await registerLogsRoutes(app);
 logDebug("Server: Logs routes registered");
+await registerConversationRoutes(app);
+logDebug("Server: Conversation routes registered");
 logInfo("Server: All API routes registered");
 
+// Initialize schedule store
+await scheduleStore.initialize();
+logInfo("Server: Schedule store initialized");
+
+// Socket.IO connection handler (must be after app.ready())
+app.ready().then(() => {
+  logInfo("Server: Setting up Socket.IO connection handler");
+  
+  app.io.on('connection', (socket) => {
+    const connectionId = socket.id;
+    logInfo(`[SOCKET-CONNECT] Client connected: ${connectionId}`);
+    
+    socketClients.set(connectionId, socket);
+    
+    // Send welcome message
+    socket.emit('connection_established', {
+      timestamp: new Date().toISOString()
+    });
+    
+    // Handle gui_response
+    socket.on('gui_response', async (payload) => {
+      logDebug(`[SOCKET-MESSAGE] gui_response received from ${connectionId}`, { payload });
+      const { requestId, ok, data, error } = payload;
+      if (requestId) {
+        const { GuiControlTool } = await import("./components/tools/guiControl");
+        GuiControlTool.handleResponse(requestId, { ok, data, error });
+      }
+    });
+    
+    // Handle avatar_poke
+    socket.on('avatar_poke', async (payload) => {
+      logDebug(`[SOCKET-MESSAGE] avatar_poke received from ${connectionId}`, { payload });
+      const { timestamp, position } = payload;
+      const userId = "user-123"; // Default user ID
+      const conversationId = "main";
+      
+      // Create source message for avatar poke
+      const sourceMessage = {
+        id: `poke-${Date.now()}`,
+        userId,
+        conversationId,
+        content: "poke",
+        createdAt: timestamp || new Date().toISOString(),
+        source: {
+          id: "avatar",
+          kind: "gui" as const,
+          label: "Avatar Poke",
+          meta: {
+            type: "poke",
+            position: position
+          }
+        }
+      };
+      
+      // Emit as source_message to be processed by persona
+      await eventBus.emit({
+        type: "source_message",
+        payload: sourceMessage
+      });
+      
+      logDebug("Server: Avatar poke converted to source message", {
+        messageId: sourceMessage.id,
+        userId,
+        position
+      });
+    });
+    
+    // Handle avatar_state (receives state updates from frontend)
+    socket.on('avatar_state', (payload) => {
+      logDebug(`[SOCKET-MESSAGE] avatar_state received from ${connectionId}`, { payload });
+      // Store avatar state per connection if needed
+      // Could be used for AI to know avatar position/mode
+    });
+    
+    socket.on('disconnect', (reason) => {
+      logInfo(`[SOCKET-DISCONNECT] Client disconnected: ${connectionId}`, { reason });
+      socketClients.delete(connectionId);
+    });
+    
+    socket.on('error', (error) => {
+      logError(`[SOCKET-ERROR] Socket error for ${connectionId}`, error);
+    });
+  });
+  
+  logInfo("Server: Socket.IO connection handler ready");
+});
+
 const PORT = Number(process.env.PORT || 3001);
+
+// Start server
+logInfo("Server: Starting backend server", { port: PORT });
 
 app
   .listen({ port: PORT, host: "0.0.0.0" })
@@ -290,7 +372,9 @@ app
   })
   .catch((err) => {
     logError("Server: Failed to start", err, {
-      port: PORT
+      port: PORT,
+      errorCode: (err as any)?.code,
+      errorMessage: err instanceof Error ? err.message : String(err)
     });
     process.exit(1);
   });

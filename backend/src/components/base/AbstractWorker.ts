@@ -45,6 +45,12 @@ export abstract class AbstractWorker implements WorkerInterface {
   abstract readonly name: string;
   abstract readonly description: string;
   abstract readonly category: string;
+  
+  /** Max retry attempts - override in subclass if needed */
+  readonly maxRetries: number = 3;
+  
+  /** Priority level - override in subclass if needed */
+  readonly priority: "low" | "normal" | "high" = "normal";
 
   /**
    * Process a job from the queue.

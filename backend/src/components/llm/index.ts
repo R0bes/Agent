@@ -11,6 +11,8 @@ import { AbstractTool } from "../base/AbstractTool";
 import type { Component, ServiceInterface, ToolInterface, ToolContext, ToolResult } from "../types";
 import type { OllamaChatMessage, OllamaChatOptions, OllamaChatResponse } from "./ollamaClient";
 import { ollamaChat as ollamaChatFunction } from "./ollamaClient";
+export { embeddingClient } from "./embeddingClient";
+export type { EmbeddingResult } from "./embeddingClient";
 import { logInfo, logDebug, logError } from "../../utils/logger";
 
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";

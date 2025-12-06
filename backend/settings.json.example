@@ -17,6 +17,17 @@
   "eventCrawler": {
     "enabledClubs": [],
     "crawlInterval": 60
+  },
+  "conversation": {
+    "maxContextTokens": 8000,
+    "maxHistoryMessages": 15,
+    "memoryLimit": 12,
+    "memoryKinds": ["fact", "preference", "summary", "episode"],
+    "compactionTriggers": {
+      "messageThreshold": 50,
+      "tokenThreshold": 4000,
+      "timeIntervalMinutes": 60
+    }
   }
 }
 

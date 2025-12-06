@@ -7,7 +7,7 @@
 
 import { AbstractTool } from "../../base/AbstractTool";
 import type { Component, ToolContext, ToolResult } from "../../types";
-import { workerEngine } from "../../worker/engine";
+import { bullMQWorkerEngine } from "../../worker/bullmq-engine";
 
 /**
  * Worker Manager Tool implementation
@@ -71,7 +71,7 @@ class WorkerManagerToolAdapter extends AbstractTool {
     const action = args.action ?? "list_workers";
 
     if (action === "list_workers") {
-      const workers = workerEngine.listWorkers().map((w) => ({
+      const workers = bullMQWorkerEngine.listWorkers().map((w) => ({
         name: w.name,
         description: w.description,
         category: w.category
@@ -80,7 +80,7 @@ class WorkerManagerToolAdapter extends AbstractTool {
     }
 
     if (action === "list_jobs") {
-      const jobs = workerEngine.listJobs();
+      const jobs = await bullMQWorkerEngine.listJobs();
       return { ok: true, data: { jobs } };
     }
 
