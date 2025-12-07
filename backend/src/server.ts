@@ -89,37 +89,37 @@ export function sendAvatarCommand(command: { command: 'move' | 'capability' | 'e
     logInfo("Server: Fastify, CORS and Socket.IO registered");
 
     // Listen for source_message events and process them through persona
-    import { handleSourceMessage } from "./components/persona";
+    const { handleSourceMessage } = await import("./components/persona");
     eventBus.on("source_message", async (event) => {
-  const sourceMessage = event.payload;
-  logDebug("Server: Processing source message", {
-    messageId: sourceMessage.id,
-    userId: sourceMessage.userId,
-    conversationId: sourceMessage.conversationId,
-    sourceKind: sourceMessage.source.kind
-  });
+      const sourceMessage = event.payload;
+      logDebug("Server: Processing source message", {
+        messageId: sourceMessage.id,
+        userId: sourceMessage.userId,
+        conversationId: sourceMessage.conversationId,
+        sourceKind: sourceMessage.source.kind
+      });
 
-  try {
-    const assistantMessage = await handleSourceMessage(sourceMessage);
-    
-    logInfo("Server: Source message processed successfully", {
-      messageId: sourceMessage.id,
-      assistantMessageId: assistantMessage.id,
-      userId: sourceMessage.userId
+      try {
+        const assistantMessage = await handleSourceMessage(sourceMessage);
+        
+        logInfo("Server: Source message processed successfully", {
+          messageId: sourceMessage.id,
+          assistantMessageId: assistantMessage.id,
+          userId: sourceMessage.userId
+        });
+        
+        // Emit message_created event for WebSocket clients
+        await eventBus.emit({
+          type: "message_created",
+          payload: assistantMessage
+        });
+      } catch (err) {
+        logError("Server: Failed to process source message", err, {
+          messageId: sourceMessage.id,
+          userId: sourceMessage.userId
+        });
+      }
     });
-    
-    // Emit message_created event for WebSocket clients
-    await eventBus.emit({
-      type: "message_created",
-      payload: assistantMessage
-    });
-  } catch (err) {
-    logError("Server: Failed to process source message", err, {
-      messageId: sourceMessage.id,
-      userId: sourceMessage.userId
-    });
-  }
-});
 
     function broadcastToClients(event: any, eventType: string) {
       logDebug("Server: Broadcasting to Socket.IO clients", {
@@ -143,10 +143,10 @@ export function sendAvatarCommand(command: { command: 'move' | 'capability' | 'e
       return { status: "ok" };
     });
 
-        // Register toolbox first so it can manage other tools
+    // Register toolbox first so it can manage other tools
     logInfo("Server: Registering components");
     await registerComponent(toolboxComponent);
-logDebug("Server: Toolbox component registered");
+    logDebug("Server: Toolbox component registered");
 await registerComponent(llmComponent);
 logDebug("Server: LLM component registered");
 await registerComponent(personaComponent);
