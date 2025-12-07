@@ -16,6 +16,8 @@ import { subscribe } from "./eventBus";
 import { saveAvatarState, loadAvatarState, type AvatarState } from "./utils/avatarStorage";
 import { AIControllableProvider } from "./ai-controllable/AIControllableContext";
 import { AISelectionOverlay } from "./ai-controllable/AISelectionOverlay";
+import { avatarCapabilities } from "./components/avatar/AvatarCapabilities";
+import type { AvatarContext } from "./components/avatar/types";
 
 type ActivePanel = "preferences" | "conversation" | null;
 
@@ -100,13 +102,17 @@ export const App: React.FC = () => {
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
-  // Context menu actions
-  const contextMenuItems = [
-    {
+  // Context menu actions - dynamically build from capabilities
+  const contextMenuItems = React.useMemo(() => {
+    const items: Array<{ label: string; action: () => void; disabled?: boolean }> = [];
+
+    // Basic actions
+    items.push({
       label: avatarMode === 'small' ? "Restore Avatar" : "Minimize to LED",
       action: () => setAvatarMode(avatarMode === 'small' ? 'large' : 'small')
-    },
-    {
+    });
+
+    items.push({
       label: status === "connected" ? "Poke AI" : "Reconnect",
       action: () => {
         if (status === "disconnected" && reconnect) {
@@ -121,28 +127,123 @@ export const App: React.FC = () => {
           });
         }
       }
-    },
-    {
+    });
+
+    // Add hotkey for mode toggle
+    items[0].label = `${items[0].label} (a+1)`;
+
+    // Separator (visual)
+    items.push({
+      label: "---",
+      action: () => {},
+      disabled: true
+    });
+
+    // Expression capabilities
+    const expressions = avatarCapabilities.getByCategory('expression');
+    if (expressions.length > 0) {
+      items.push({
+        label: "Expressions",
+        action: () => {},
+        disabled: true
+      });
+      expressions.forEach(cap => {
+        const hotkeyText = cap.hotkey ? ` (${cap.hotkey})` : '';
+        items.push({
+          label: `${cap.name}${hotkeyText}`,
+          action: async () => {
+            const context: AvatarContext = {
+              status,
+              position: avatarPosition || { x: 0, y: 0 },
+              mode: avatarMode,
+              sendToBackend,
+              setEmotion: setAvatarEmotion,
+              setMode: setAvatarMode
+            };
+            try {
+              await avatarCapabilities.execute(cap.id, context);
+            } catch (err) {
+              console.error(`[AvatarMenu] Failed to execute capability ${cap.id}:`, err);
+            }
+          }
+        });
+      });
+    }
+
+    // Action capabilities
+    const actions = avatarCapabilities.getByCategory('action');
+    if (actions.length > 0) {
+      items.push({
+        label: "---",
+        action: () => {},
+        disabled: true
+      });
+      items.push({
+        label: "Actions",
+        action: () => {},
+        disabled: true
+      });
+      actions.forEach(cap => {
+        const hotkeyText = cap.hotkey ? ` (${cap.hotkey})` : '';
+        items.push({
+          label: `${cap.name}${hotkeyText}`,
+          action: async () => {
+            const context: AvatarContext = {
+              status,
+              position: avatarPosition || { x: 0, y: 0 },
+              mode: avatarMode,
+              sendToBackend,
+              setEmotion: setAvatarEmotion,
+              setMode: setAvatarMode
+            };
+            try {
+              await avatarCapabilities.execute(cap.id, context);
+            } catch (err) {
+              console.error(`[AvatarMenu] Failed to execute capability ${cap.id}:`, err);
+            }
+          }
+        });
+      });
+    }
+
+    // Separator
+    items.push({
+      label: "---",
+      action: () => {},
+      disabled: true
+    });
+
+    // Emotions (legacy, could be moved to expressions later)
+    items.push({
       label: "Show Emotion: Happy",
       action: () => {
         setAvatarEmotion("happy");
         setTimeout(() => setAvatarEmotion(null), 2000);
       }
-    },
-    {
+    });
+    items.push({
       label: "Show Emotion: Thinking",
       action: () => {
         setAvatarEmotion("thinking");
         setTimeout(() => setAvatarEmotion(null), 2000);
       }
-    },
-    {
+    });
+
+    // Utility actions
+    items.push({
+      label: "---",
+      action: () => {},
+      disabled: true
+    });
+    items.push({
       label: "Reset Position",
       action: () => {
         setAvatarPosition({ x: 24, y: window.innerHeight / 2 }); // Sidebar center
       }
-    }
-  ];
+    });
+
+    return items;
+  }, [avatarMode, status, avatarPosition, reconnect, sendToBackend, setAvatarEmotion, setAvatarMode, setAvatarPosition]);
 
   const handlePanelToggle = (panel: ActivePanel) => {
     setActivePanel(activePanel === panel ? null : panel);

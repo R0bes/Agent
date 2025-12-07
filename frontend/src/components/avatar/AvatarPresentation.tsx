@@ -1,141 +1,120 @@
-import React, { useRef, useEffect } from 'react';
-import type { AvatarPresentationMode, AvatarStatus, AvatarEmotion, AvatarPosition } from './types';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
+import type { AvatarStatus, AvatarPosition } from './types';
+import { AVATAR_BASE_SIZE, AVATAR_MIN_SIZE } from './types';
 
 interface AvatarPresentationProps {
-  mode: AvatarPresentationMode;
+  position: AvatarPosition;  // ZENTRUM-Koordinaten
+  size: number;  // 0.25 - 1.75 (direkt)
   status: AvatarStatus;
-  position: AvatarPosition;
-  emotion?: AvatarEmotion;
-  isAnimating?: boolean;
   isDragging?: boolean;
   onMouseDown?: (e: React.MouseEvent) => void;
   onClick?: (e: React.MouseEvent) => void;
-  onDoubleClick?: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onWheel?: (delta: number) => void;  // Mausrad für Skalierung
 }
 
 export const AvatarPresentation: React.FC<AvatarPresentationProps> = ({
-  mode,
-  status,
   position,
-  emotion,
-  isAnimating = false,
+  size,
+  status,
   isDragging = false,
   onMouseDown,
   onClick,
-  onDoubleClick,
-  onContextMenu
+  onContextMenu,
+  onWheel
 }) => {
   const avatarRef = useRef<HTMLDivElement>(null);
-
+  const [isHovered, setIsHovered] = useState(false);
+  
+  // Berechne tatsächliche Größe in Pixeln
+  const pixelSize = AVATAR_BASE_SIZE * size;
+  
+  // CSS-Klassen
   const statusClass = `persona-avatar-${status}`;
-  const emotionClass = emotion ? `avatar-emotion-${emotion}` : '';
   const draggingClass = isDragging ? 'avatar-dragging' : '';
-  const minimizedClass = mode === 'small' ? 'avatar-minimized' : '';
-  const sidebarLedClass = mode === 'small' ? 'avatar-sidebar-led' : '';
 
-  // Handle mode change animation (small <-> large)
+  // Mausrad-Handler für Skalierung - direkt auf dem Element
+  const handleWheelEvent = useCallback((e: React.WheelEvent) => {
+    if (!onWheel) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Delta: positiv = nach oben (vergrößern), negativ = nach unten (verkleinern)
+    // Schrittweite: 1% der Range (0.25-1.75 = 1.5 Range, also 0.015 pro Schritt)
+    const stepSize = 0.015; // 1% der Range
+    const delta = e.deltaY > 0 ? -stepSize : stepSize;
+    
+    onWheel(delta);
+  }, [onWheel]);
+
+  // Zusätzlich: addEventListener für bessere Kompatibilität
   useEffect(() => {
-    const sidebar = document.querySelector('.sidebar');
-    const sidebarContent = document.querySelector('.sidebar-content');
+    const element = avatarRef.current;
+    if (!element || !onWheel) return;
 
-    if (mode === 'small') {
-      // Expand sidebar
-      if (sidebar) {
-        sidebar.classList.add('has-minimized-avatar');
-      }
-      if (sidebarContent) {
-        sidebarContent.classList.add('has-minimized-avatar');
-      }
+    const handleWheel = (e: WheelEvent) => {
+      // Prüfe ob Maus über Avatar ist
+      const rect = element.getBoundingClientRect();
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distance = Math.sqrt(Math.pow(mouseX - centerX, 2) + Math.pow(mouseY - centerY, 2));
+      const radius = rect.width / 2;
+      
+      // Prüfe ob Maus innerhalb des Avatar-Kreises ist
+      if (distance > radius) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Delta: positiv = nach oben (vergrößern), negativ = nach unten (verkleinern)
+      const stepSize = 0.015; // 1% der Range
+      const delta = e.deltaY > 0 ? -stepSize : stepSize;
+      
+      onWheel(delta);
+    };
 
-      // Animate to small size
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (avatarRef.current) {
-            const sidebarRect = sidebar?.getBoundingClientRect();
-            const contentRect = sidebarContent?.getBoundingClientRect();
-            
-            if (sidebarRect && contentRect) {
-              const ledX = sidebarRect.left + sidebarRect.width / 2;
-              const ledY = contentRect.top + 16;
-
-              avatarRef.current.style.transition = 'none';
-              const currentRect = avatarRef.current.getBoundingClientRect();
-              const currentPos = {
-                x: currentRect.left + currentRect.width / 2,
-                y: currentRect.top + currentRect.height / 2
-              };
-              avatarRef.current.style.left = `${currentPos.x}px`;
-              avatarRef.current.style.top = `${currentPos.y}px`;
-              avatarRef.current.style.transform = 'translate(-50%, -50%) scale(1)';
-              void avatarRef.current.offsetWidth;
-
-              avatarRef.current.style.transition = 
-                'left 2.5s cubic-bezier(0.4, 0, 0.2, 1), ' +
-                'top 2.5s cubic-bezier(0.4, 0, 0.2, 1), ' +
-                'transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
-              void avatarRef.current.offsetWidth;
-
-              avatarRef.current.style.left = `${ledX}px`;
-              avatarRef.current.style.top = `${ledY}px`;
-              avatarRef.current.style.transform = 'translate(-50%, -50%) scale(0.25)';
-            }
-          }
-        });
-      });
-    } else {
-      // Collapse sidebar
-      if (sidebar) {
-        sidebar.classList.remove('has-minimized-avatar');
-      }
-      if (sidebarContent) {
-        sidebarContent.classList.remove('has-minimized-avatar');
-      }
-
-      // Animate to large size
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (avatarRef.current) {
-            avatarRef.current.style.transition = 
-              'left 2.5s cubic-bezier(0.4, 0, 0.2, 1), ' +
-              'top 2.5s cubic-bezier(0.4, 0, 0.2, 1), ' +
-              'transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
-            void avatarRef.current.offsetWidth;
-
-            avatarRef.current.style.left = `${position.x}px`;
-            avatarRef.current.style.top = `${position.y}px`;
-            avatarRef.current.style.transform = 'translate(-50%, -50%) scale(1)';
-          }
-        });
-      });
-    }
-  }, [mode, position]);
+    element.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      element.removeEventListener('wheel', handleWheel);
+    };
+  }, [onWheel]);
 
   return (
     <div
       ref={avatarRef}
-      className={`persona-avatar ${statusClass} ${emotionClass} ${draggingClass} ${minimizedClass} ${sidebarLedClass}`}
+      className={`persona-avatar ${statusClass} ${draggingClass}`}
       style={{
-        position: mode === 'small' ? 'absolute' : 'fixed',
+        position: 'fixed',  // Immer fixed, unabhängig von Größe
+        // Position ist das ZENTRUM - transform sorgt für korrekte Ausrichtung
         left: `${position.x}px`,
         top: `${position.y}px`,
-        zIndex: mode === 'small' ? 10001 : 10000,
-        transform: isAnimating ? undefined : (mode === 'small' 
-          ? 'translate(-50%, -50%) scale(0.25)' 
-          : 'translate(-50%, -50%) scale(1)'),
-        cursor: mode === 'small' ? 'pointer' : (isDragging ? 'grabbing' : 'grab'),
+        width: `${pixelSize}px`,
+        height: `${pixelSize}px`,
+        // translate(-50%, -50%) sorgt dafür, dass left/top das Zentrum ist
+        transform: isDragging 
+          ? 'translate(-50%, -50%) scale(1.1)'  // Während Drag: leicht vergrößern
+          : 'translate(-50%, -50%)',             // Normal: Zentrierung
+        transformOrigin: 'center center',  // Zentrum bleibt konstant
+        transition: isDragging 
+          ? 'none'  // Keine Transition während Drag
+          : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
+            'top 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        zIndex: 10000,  // Immer gleicher zIndex
+        cursor: isDragging ? 'grabbing' : 'grab',  // Immer grab/grabbing
         userSelect: 'none',
         pointerEvents: 'auto'
       }}
-      onMouseDown={mode === 'small' ? undefined : onMouseDown}
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onMouseDown={onMouseDown}  // Immer aktiv, unabhängig von Größe
+      onWheel={handleWheelEvent}  // Mausrad für Skalierung
       onContextMenu={onContextMenu}
-      title={mode === 'small'
-        ? `Status: ${status === 'connected' ? 'Connected' : status === 'connecting' ? 'Connecting...' : 'Disconnected'}\nDouble-click to restore`
-        : `WebSocket: ${status === 'connected' ? 'Connected' : status === 'connecting' ? 'Connecting...' : 'Disconnected'}\nClick to ${status === 'connected' ? 'poke' : 'reconnect'}, Double-click to minimize, Right-click for menu`
-      }
+      title={`Status: ${status} | Size: ${(size * 100).toFixed(0)}% (${pixelSize.toFixed(0)}px)`}
     />
   );
 };
-

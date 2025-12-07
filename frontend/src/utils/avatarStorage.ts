@@ -2,7 +2,7 @@ const STORAGE_KEY = "avatar_state";
 
 export interface AvatarState {
   position: { x: number; y: number };
-  minimized: boolean;
+  size: number;  // 0.25 - 1.75 (direkt)
 }
 
 export function saveAvatarState(state: AvatarState): void {
@@ -24,10 +24,19 @@ export function loadAvatarState(): AvatarState | null {
         typeof parsed === "object" &&
         parsed.position &&
         typeof parsed.position.x === "number" &&
-        typeof parsed.position.y === "number" &&
-        typeof parsed.minimized === "boolean"
+        typeof parsed.position.y === "number"
       ) {
-        return parsed as AvatarState;
+        // Migration: Wenn minimized vorhanden, konvertiere zu size
+        if (typeof parsed.minimized === "boolean") {
+          return {
+            position: parsed.position,
+            size: parsed.minimized ? 0.25 : 1.0
+          };
+        }
+        // Neue Struktur: size vorhanden
+        if (typeof parsed.size === "number" && parsed.size >= 0.25 && parsed.size <= 1.75) {
+          return parsed as AvatarState;
+        }
       }
     }
   } catch (error) {

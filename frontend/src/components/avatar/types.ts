@@ -1,19 +1,26 @@
-export type AvatarPresentationMode = 'small' | 'large';
 export type AvatarStatus = 'disconnected' | 'connecting' | 'connected';
-export type AvatarEmotion = 'happy' | 'thinking' | 'attentive' | 'confused' | 'excited' | null;
 
+// Größenkonstanten
+export const AVATAR_MIN_SIZE = 0.25;  // 25% = 10px (40px * 0.25)
+export const AVATAR_MAX_SIZE = 1.75;  // 175% = 70px (40px * 1.75)
+export const AVATAR_BASE_SIZE = 40;   // Basis-Größe in Pixeln
+
+// Position bezieht sich auf das ZENTRUM des Avatars
 export interface AvatarPosition {
-  x: number;
-  y: number;
+  x: number;  // Zentrum X-Koordinate
+  y: number;  // Zentrum Y-Koordinate
 }
 
+// AvatarContext für Capabilities (später implementiert)
 export interface AvatarContext {
   status: AvatarStatus;
-  position: AvatarPosition;
-  mode: AvatarPresentationMode;
+  position: AvatarPosition;  // Zentrum
+  size: number;  // 0.25 - 1.75 (direkt)
   sendToBackend: (event: { type: string; payload: any }) => void;
+  setSize?: (size: number) => void;  // Statt setMode
 }
 
+// Capabilities (später implementiert)
 export type AvatarCapabilityCategory = 'expression' | 'action';
 
 export interface AvatarCapability {
@@ -26,16 +33,17 @@ export interface AvatarCapability {
 }
 
 export interface AvatarCommand {
-  command: 'move' | 'capability' | 'expression' | 'action';
-  target?: AvatarPosition;
+  command: 'move' | 'capability' | 'expression' | 'action' | 'set_size' | 'resize';
+  target?: AvatarPosition;  // Zentrum
+  size?: number;  // 0.25 - 1.75
   capabilityId?: string;
   args?: Record<string, any>;
 }
 
 export interface AvatarState {
   status: AvatarStatus;
-  position: AvatarPosition;
-  mode: AvatarPresentationMode;
+  position: AvatarPosition;  // Zentrum
+  size: number;  // 0.25 - 1.75 (direkt)
   availableCapabilities: string[];
 }
 

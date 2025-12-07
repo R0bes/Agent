@@ -223,8 +223,14 @@ class ToolboxService extends AbstractService {
       try {
         const tools = await toolSet.listTools();
         for (const tool of tools) {
+          // Ensure shortDescription is max 50 characters
+          const truncatedShortDescription = tool.shortDescription.length > 50
+            ? tool.shortDescription.substring(0, 47) + "..."
+            : tool.shortDescription;
+          
           allTools.push({
             ...tool,
+            shortDescription: truncatedShortDescription,
             toolSetId: toolSet.id,
             toolSetName: toolSet.name
           });
@@ -237,6 +243,32 @@ class ToolboxService extends AbstractService {
     }
 
     return allTools;
+  }
+
+  /**
+   * Hole alle Tools von einem spezifischen ToolSet
+   */
+  async getToolsFromToolSet(toolSetId: string): Promise<ToolDescriptor[]> {
+    const toolSet = this.toolSets.get(toolSetId);
+    if (!toolSet) {
+      throw new Error(`Tool set "${toolSetId}" not found`);
+    }
+
+    try {
+      const tools = await toolSet.listTools();
+      // Ensure shortDescription is max 50 characters
+      return tools.map(tool => ({
+        ...tool,
+        shortDescription: tool.shortDescription.length > 50
+          ? tool.shortDescription.substring(0, 47) + "..."
+          : tool.shortDescription
+      }));
+    } catch (err) {
+      logError("Toolbox: Failed to list tools from tool set", err, {
+        toolSetId
+      });
+      throw err;
+    }
   }
 
   /**

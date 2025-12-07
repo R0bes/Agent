@@ -104,7 +104,7 @@ export async function handleSourceMessage(srcMsg: SourceMessage): Promise<ChatMe
 
   messageCounter += 1;
   const reply: ChatMessage = {
-    id: `msg-${messageCounter}`,
+    id: `msg-${Date.now()}-${messageCounter}-${Math.random().toString(16).slice(2)}`,
     conversationId: srcMsg.conversationId,
     role: "assistant",
     content: assistantContent,
@@ -132,16 +132,35 @@ export async function handleSourceMessage(srcMsg: SourceMessage): Promise<ChatMe
     }
   });
 
-  await messageStore.save({
-    id: reply.id,
-    conversationId: reply.conversationId,
-    userId: srcMsg.userId,
-    role: "assistant",
-    content: reply.content,
-    metadata: {
-      processingDuration
+  // Try to save to messageStore, but don't fail if it already exists
+  try {
+    await messageStore.save({
+      id: reply.id,
+      conversationId: reply.conversationId,
+      userId: srcMsg.userId,
+      role: "assistant",
+      content: reply.content,
+      metadata: {
+        processingDuration
+      }
+    });
+  } catch (err: any) {
+    // If message already exists (duplicate key), log but continue
+    // The message is already in conversationStore, so this is not critical
+    if (err?.code === "23505") {
+      logDebug("Persona: Assistant message already exists in messageStore, skipping", {
+        messageId: reply.id,
+        conversationId: reply.conversationId
+      });
+    } else {
+      // For other errors, log but continue - don't fail the entire request
+      logWarn("Persona: Failed to save assistant message to messageStore, continuing anyway", {
+        messageId: reply.id,
+        conversationId: reply.conversationId,
+        error: err instanceof Error ? err.message : String(err)
+      });
     }
-  });
+  }
 
   // 3. Extract memories from user message using LLM
   try {

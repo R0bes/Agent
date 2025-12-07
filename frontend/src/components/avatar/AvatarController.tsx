@@ -2,28 +2,28 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 import { subscribe } from '../../eventBus';
 import { avatarCapabilities } from './AvatarCapabilities';
-import type { AvatarContext, AvatarCommand, AvatarState, AvatarPresentationMode, AvatarPosition } from './types';
+import type { AvatarContext, AvatarCommand, AvatarState, AvatarPosition } from './types';
+import { AVATAR_MIN_SIZE, AVATAR_MAX_SIZE } from './types';
 
 interface AvatarControllerProps {
   status: 'disconnected' | 'connecting' | 'connected';
-  mode: AvatarPresentationMode;
-  position: AvatarPosition;
-  onModeChange: (mode: AvatarPresentationMode) => void;
+  size: number;  // 0.25 - 1.75 (direkt)
+  position: AvatarPosition;  // Zentrum
+  onSizeChange: (size: number) => void;
   onPositionChange: (position: AvatarPosition) => void;
   onCapabilityExecute?: (capabilityId: string) => void;
 }
 
 export const useAvatarController = ({
   status,
-  mode,
+  size,
   position,
-  onModeChange,
+  onSizeChange,
   onPositionChange,
   onCapabilityExecute
 }: AvatarControllerProps) => {
-  const { sendToBackend, socket } = useWebSocket();
+  const { sendToBackend } = useWebSocket();
   const stateUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const aKeyPressedRef = useRef(false);
 
   // Send avatar state to backend (debounced)
   const sendAvatarState = useCallback(() => {
@@ -35,7 +35,7 @@ export const useAvatarController = ({
       const state: AvatarState = {
         status,
         position,
-        mode,
+        size,
         availableCapabilities: avatarCapabilities.getAll().map(cap => cap.id)
       };
 
@@ -44,7 +44,7 @@ export const useAvatarController = ({
         payload: state
       });
     }, 300); // Debounce: 300ms
-  }, [status, position, mode, sendToBackend]);
+  }, [status, position, size, sendToBackend]);
 
   // Send state updates when state changes
   useEffect(() => {
@@ -65,6 +65,17 @@ export const useAvatarController = ({
             }
             break;
 
+          case 'set_size':
+          case 'resize':
+            if (command.size !== undefined) {
+              const clampedSize = Math.max(
+                AVATAR_MIN_SIZE, 
+                Math.min(AVATAR_MAX_SIZE, command.size)
+              );
+              onSizeChange(clampedSize);
+            }
+            break;
+
           case 'capability':
           case 'expression':
           case 'action':
@@ -72,8 +83,9 @@ export const useAvatarController = ({
               const context: AvatarContext = {
                 status,
                 position,
-                mode,
-                sendToBackend
+                size,
+                sendToBackend,
+                setSize: onSizeChange
               };
               avatarCapabilities.execute(command.capabilityId, context)
                 .then(() => {
@@ -91,75 +103,10 @@ export const useAvatarController = ({
     });
 
     return unsubscribe;
-  }, [status, position, mode, sendToBackend, onPositionChange, onCapabilityExecute]);
+  }, [status, position, size, sendToBackend, onPositionChange, onSizeChange, onCapabilityExecute]);
 
-  // Hotkey handling for capabilities
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeElement = document.activeElement;
-      const isInputFocused = activeElement?.tagName === 'TEXTAREA' || activeElement?.tagName === 'INPUT';
-      const hasMeta = e.ctrlKey || e.metaKey;
-
-      if (isInputFocused && !hasMeta) return;
-      if (!isInputFocused && hasMeta) return;
-
-      const key = e.key.toLowerCase();
-
-      // Handle a+1 combination for mode toggle
-      if (key === 'a') {
-        aKeyPressedRef.current = true;
-        setTimeout(() => {
-          aKeyPressedRef.current = false;
-        }, 1000);
-        return;
-      }
-
-      if (key === '1' && aKeyPressedRef.current) {
-        e.preventDefault();
-        aKeyPressedRef.current = false;
-        onModeChange(mode === 'small' ? 'large' : 'small');
-        return;
-      }
-
-      // Handle other a+X combinations for capabilities
-      if (key.match(/^[0-9]$/) && aKeyPressedRef.current) {
-        e.preventDefault();
-        const hotkey = `a+${key}`;
-        const capability = avatarCapabilities.getByHotkey(hotkey);
-        
-        if (capability) {
-          const context: AvatarContext = {
-            status,
-            position,
-            mode,
-            sendToBackend
-          };
-          avatarCapabilities.execute(capability.id, context)
-            .then(() => {
-              if (onCapabilityExecute) {
-                onCapabilityExecute(capability.id);
-              }
-            })
-            .catch(err => {
-              console.error('[AvatarController] Hotkey capability execution failed:', err);
-            });
-        }
-        
-        aKeyPressedRef.current = false;
-        return;
-      }
-
-      // Reset a key flag if other keys are pressed
-      if (aKeyPressedRef.current && key !== '1' && !key.match(/^[0-9]$/)) {
-        aKeyPressedRef.current = false;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [status, position, mode, sendToBackend, onModeChange, onCapabilityExecute]);
+  // Hotkey handling for capabilities (später)
+  // Size-Toggle Hotkeys entfernt - nur Mausrad für Skalierung
 
   // Cleanup
   useEffect(() => {
@@ -170,4 +117,3 @@ export const useAvatarController = ({
     };
   }, []);
 };
-

@@ -1,7 +1,8 @@
 import { memoryStore } from "../components/memory/store";
 import { qdrantClient } from "../components/memory/qdrantClient";
+import { embeddingClient } from "../components/llm/embeddingClient";
 import { getPostgresPool } from "../database/postgres";
-import { logInfo, logDebug, logError } from "../utils/logger";
+import { logInfo, logDebug, logError, logWarn } from "../utils/logger";
 export async function registerMemoryRoutes(app) {
     /**
      * GET /api/memory - List memories with filters
@@ -163,7 +164,29 @@ export async function registerMemoryRoutes(app) {
                 collectionSize = collectionInfo.points_count || 0;
             }
             catch (err) {
-                logError("Memory API: Qdrant status check failed", err);
+                const message = err instanceof Error ? err.message : String(err);
+                const isNotFound = message?.toLowerCase().includes("not found");
+                // Try to auto-initialize Qdrant collection if missing
+                if (isNotFound) {
+                    try {
+                        const dimension = await embeddingClient.getDimension();
+                        await qdrantClient.initialize(dimension);
+                        const collectionInfo = await qdrantClient.getCollectionInfo();
+                        qdrantConnected = true;
+                        collectionSize = collectionInfo.points_count || 0;
+                        logInfo("Memory API: Qdrant auto-initialized", { dimension, collectionSize });
+                    }
+                    catch (initErr) {
+                        logWarn("Memory API: Qdrant not ready", {
+                            error: initErr instanceof Error ? initErr.message : String(initErr)
+                        });
+                    }
+                }
+                else {
+                    logWarn("Memory API: Qdrant status check failed", {
+                        error: message
+                    });
+                }
             }
             logInfo("Memory API: Status check completed", {
                 postgresConnected,

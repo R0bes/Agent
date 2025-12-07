@@ -32,35 +32,57 @@ export class AvatarToolSet extends SystemToolSet {
     return [
       {
         name: "avatar_move",
-        description: "Move the avatar to a specific position on the screen",
-        shortDescription: "Move avatar to position",
+        description: "Move the avatar to a specific position on the screen (center coordinates)",
+        shortDescription: "Move avatar",
         parameters: {
           type: "object",
           properties: {
             x: {
               type: "number",
-              description: "X coordinate (0-1 for relative, or pixel value for absolute)"
+              description: "X-coordinate of the avatar's center (absolute pixels)"
             },
             y: {
               type: "number",
-              description: "Y coordinate (0-1 for relative, or pixel value for absolute)"
-            },
-            relative: {
-              type: "boolean",
-              description: "If true, coordinates are relative (0-1), otherwise absolute pixels",
-              default: false
+              description: "Y-coordinate of the avatar's center (absolute pixels)"
             }
           },
           required: ["x", "y"]
         },
         examples: [
           {
-            description: "Move avatar to center of screen (relative)",
-            args: { x: 0.5, y: 0.5, relative: true }
+            name: "Move avatar to center of screen",
+            arguments: { x: 960, y: 540 }
+          }
+        ]
+      },
+      {
+        name: "avatar_set_size",
+        description: "Set the avatar size (0.25 - 1.75, where 1.0 = 100% = 40px base size)",
+        shortDescription: "Set avatar size",
+        parameters: {
+          type: "object",
+          properties: {
+            size: {
+              type: "number",
+              minimum: 0.25,
+              maximum: 1.75,
+              description: "Size factor: 0.25 (25%) to 1.75 (175%) of base size"
+            }
+          },
+          required: ["size"]
+        },
+        examples: [
+          {
+            description: "Set to minimum size (25%)",
+            arguments: { size: 0.25 }
           },
           {
-            description: "Move avatar to specific pixel position",
-            args: { x: 200, y: 300, relative: false }
+            description: "Set to normal size (100%)",
+            arguments: { size: 1.0 }
+          },
+          {
+            description: "Set to maximum size (175%)",
+            arguments: { size: 1.75 }
           }
         ]
       },
@@ -103,32 +125,6 @@ export class AvatarToolSet extends SystemToolSet {
           properties: {}
         }
       },
-      {
-        name: "avatar_set_mode",
-        description: "Set the avatar presentation mode (small or large)",
-        shortDescription: "Set avatar mode",
-        parameters: {
-          type: "object",
-          properties: {
-            mode: {
-              type: "string",
-              enum: ["small", "large"],
-              description: "Presentation mode: 'small' (LED) or 'large' (normal avatar)"
-            }
-          },
-          required: ["mode"]
-        },
-        examples: [
-          {
-            description: "Switch to small mode (LED)",
-            args: { mode: "small" }
-          },
-          {
-            description: "Switch to large mode (normal)",
-            args: { mode: "large" }
-          }
-        ]
-      }
     ];
   }
 
@@ -139,7 +135,7 @@ export class AvatarToolSet extends SystemToolSet {
     try {
       switch (name) {
         case "avatar_move": {
-          const { x, y, relative = false } = args;
+          const { x, y } = args;
           
           if (typeof x !== "number" || typeof y !== "number") {
             return {
@@ -148,31 +144,44 @@ export class AvatarToolSet extends SystemToolSet {
             };
           }
 
-          let targetX = x;
-          let targetY = y;
-
-          // Convert relative coordinates to absolute if needed
-          if (relative) {
-            // Get viewport size from context or use defaults
-            const viewportWidth = 1920; // Default, could be passed from frontend
-            const viewportHeight = 1080; // Default, could be passed from frontend
-            
-            targetX = x * viewportWidth;
-            targetY = y * viewportHeight;
-          }
-
-          logDebug("AvatarToolSet: Moving avatar", { x: targetX, y: targetY, relative });
-
+          logDebug("AvatarToolSet: Moving avatar", { x, y });
+          
           sendAvatarCommand({
             command: "move",
-            target: { x: targetX, y: targetY }
+            target: { x, y }
           });
 
           return {
             ok: true,
             data: {
               message: "Avatar move command sent",
-              position: { x: targetX, y: targetY }
+              position: { x, y }
+            }
+          };
+        }
+
+        case "avatar_set_size": {
+          const { size } = args;
+          
+          if (typeof size !== "number" || size < 0.25 || size > 1.75) {
+            return {
+              ok: false,
+              error: "size must be a number between 0.25 and 1.75"
+            };
+          }
+
+          logDebug("AvatarToolSet: Setting avatar size", { size });
+          
+          sendAvatarCommand({
+            command: "set_size",
+            size: size
+          });
+
+          return {
+            ok: true,
+            data: {
+              message: "Avatar size change command sent",
+              size
             }
           };
         }
@@ -218,34 +227,6 @@ export class AvatarToolSet extends SystemToolSet {
           };
         }
 
-        case "avatar_set_mode": {
-          const { mode } = args;
-
-          if (mode !== "small" && mode !== "large") {
-            return {
-              ok: false,
-              error: "mode must be 'small' or 'large'"
-            };
-          }
-
-          logDebug("AvatarToolSet: Setting avatar mode", { mode });
-
-          // Send command to change mode
-          // This could be done via a special command or by using the capability system
-          sendAvatarCommand({
-            command: "capability",
-            capabilityId: mode === "small" ? "minimize_to_led" : "restore_from_led",
-            args: {}
-          });
-
-          return {
-            ok: true,
-            data: {
-              message: "Avatar mode change command sent",
-              mode
-            }
-          };
-        }
 
         default:
           return {
@@ -267,7 +248,7 @@ export class AvatarToolSet extends SystemToolSet {
    */
   async checkHealth(): Promise<HealthStatus> {
     return {
-      healthy: true,
+      status: "healthy",
       lastCheck: new Date().toISOString()
     };
   }

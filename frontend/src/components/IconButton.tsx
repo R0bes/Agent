@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import { useAIControllableContext } from "../ai-controllable/AIControllableContext";
 import type { AIControllableElement, AIControllableElementType } from "../ai-controllable/types";
 
@@ -13,6 +13,16 @@ const useConditionalAIControllable = (
   getBounds: () => DOMRect
 ) => {
   const { register, unregister } = useAIControllableContext();
+  
+  // Memoize callbacks to prevent unnecessary re-registrations
+  const onInteractRef = useRef(onInteract);
+  const getBoundsRef = useRef(getBounds);
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    onInteractRef.current = onInteract;
+    getBoundsRef.current = getBounds;
+  }, [onInteract, getBounds]);
 
   useEffect(() => {
     if (!aiControllable) return;
@@ -26,16 +36,16 @@ const useConditionalAIControllable = (
         // Visual selection handled by overlay
       },
       interact: async () => {
-        await onInteract();
+        await onInteractRef.current();
       },
-      getBounds
+      getBounds: () => getBoundsRef.current()
     };
 
     register(element);
     return () => {
       unregister(id);
     };
-  }, [aiControllable, id, type, label, description, onInteract, getBounds, register, unregister]);
+  }, [aiControllable, id, type, label, description, register, unregister]);
 };
 
 interface IconButtonProps {
@@ -68,6 +78,18 @@ export const IconButton: React.FC<IconButtonProps> = ({
     lg: "icon-btn-lg"
   };
 
+  // Memoize interaction callback
+  const handleInteract = useCallback(async () => {
+    if (onClick && !disabled) {
+      onClick();
+    }
+  }, [onClick, disabled]);
+
+  // Memoize bounds getter
+  const getBounds = useCallback(() => {
+    return buttonRef.current?.getBoundingClientRect() || new DOMRect();
+  }, []);
+
   // Register as AI-controllable if enabled
   useConditionalAIControllable(
     aiControllable,
@@ -75,12 +97,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
     'button',
     title || 'Button',
     `Button: ${title || 'Unknown'}`,
-    async () => {
-      if (onClick && !disabled) {
-        onClick();
-      }
-    },
-    () => buttonRef.current?.getBoundingClientRect() || new DOMRect()
+    handleInteract,
+    getBounds
   );
 
   return (

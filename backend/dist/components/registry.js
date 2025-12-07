@@ -6,12 +6,12 @@
  */
 import { getAllTools as getBaseTools } from "./base/toolRegistry";
 import { logInfo, logDebug, logWarn, logError } from "../utils/logger";
-import { toolRegistryStore } from "./toolRegistry/toolRegistryStore";
+import { toolboxStore } from "./toolbox/toolboxStore";
 const components = new Map();
 /**
  * Register a component
  */
-export function registerComponent(component) {
+export async function registerComponent(component) {
     if (components.has(component.id)) {
         logWarn("Component Registry: Component already registered", {
             componentId: component.id
@@ -33,7 +33,7 @@ export function registerComponent(component) {
             componentId: component.id
         });
         try {
-            component.initialize();
+            await component.initialize();
             logInfo("Component Registry: Component initialized", {
                 componentId: component.id
             });
@@ -96,11 +96,11 @@ export function getTools() {
     // We need to check if store is initialized to avoid errors during startup
     try {
         return allTools.filter(tool => {
-            // Skip filtering for tool_registry itself to avoid circular dependency
-            if (tool.name === "tool_registry") {
+            // Skip filtering for toolbox itself to avoid circular dependency
+            if (tool.name === "toolbox") {
                 return true;
             }
-            return toolRegistryStore.isToolEnabled(tool.name);
+            return toolboxStore.isToolEnabled(tool.name);
         });
     }
     catch (err) {
@@ -128,7 +128,7 @@ export function getAllToolsWithStatus() {
     try {
         return allTools.map(tool => ({
             tool,
-            enabled: toolRegistryStore.isToolEnabled(tool.name)
+            enabled: toolboxStore.isToolEnabled(tool.name)
         }));
     }
     catch (err) {

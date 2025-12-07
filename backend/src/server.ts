@@ -61,7 +61,7 @@ const app = Fastify({
 const socketClients = new Map<string, any>();
 
 // Function to send avatar command to all connected clients
-export function sendAvatarCommand(command: { command: 'move' | 'capability' | 'expression' | 'action'; target?: { x: number; y: number }; capabilityId?: string; args?: Record<string, any> }) {
+export function sendAvatarCommand(command: { command: 'move' | 'capability' | 'expression' | 'action' | 'set_mode'; target?: { x: number; y: number }; capabilityId?: string; mode?: 'small' | 'large'; args?: Record<string, any> }) {
   if (!app.io) {
     logWarn("Server: Cannot send avatar command - Socket.IO not initialized");
     return;

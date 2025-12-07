@@ -49,7 +49,7 @@
 }
 
 .slide-panel-toolbox {
-  width: 28%; /* Narrower than default */
+  width: 45%; /* Same width as default panels */
 }
 
 /* EXPAND: Panel moves up after header expands */
@@ -888,4 +888,315 @@ textarea.form-input,
 .muted {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* Enhanced Time & Date Inputs */
+.form-schedule-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.form-recurring-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-soft);
+  white-space: nowrap;
+  padding: 8px 12px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.form-recurring-checkbox:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-soft);
+}
+
+.form-recurring-checkbox input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+  margin: 0;
+}
+
+.form-recurring-checkbox input[type="checkbox"]:checked + span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.form-datetime-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+  position: relative;
+}
+
+.form-datetime-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-datetime-icon {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 1;
+  transition: all 0.2s ease;
+}
+
+.form-datetime-wrapper:hover .form-datetime-icon,
+.form-datetime-wrapper:focus-within .form-datetime-icon {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.form-time-input,
+.form-date-input {
+  position: relative;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(59, 130, 246, 0.05));
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.form-time-input:hover,
+.form-date-input:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+.form-time-input:focus,
+.form-date-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), 0 4px 12px rgba(139, 92, 246, 0.2);
+  transform: translateY(-2px);
+}
+
+.form-time-input {
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Courier New', monospace;
+  letter-spacing: 2px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  padding-left: 40px;
+}
+
+.form-date-input {
+  font-family: inherit;
+  font-weight: 500;
+  padding-left: 40px;
+}
+
+.form-date-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--bg-alt);
+}
+
+/* Custom styling for date/time picker icons */
+.form-datetime-group::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.03), rgba(59, 130, 246, 0.03));
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Remove default date/time picker styling */
+.form-time-input::-webkit-calendar-picker-indicator,
+.form-date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  filter: invert(0.5) sepia(1) saturate(5) hue-rotate(240deg);
+  transition: opacity 0.2s ease;
+}
+
+.form-time-input:hover::-webkit-calendar-picker-indicator,
+.form-date-input:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+.form-time-input::-webkit-datetime-edit-text,
+.form-time-input::-webkit-datetime-edit-hour-field,
+.form-time-input::-webkit-datetime-edit-minute-field,
+.form-time-input::-webkit-datetime-edit-ampm-field {
+  color: var(--accent);
+  padding: 0 2px;
+}
+
+.form-time-input::-webkit-datetime-edit-text:focus,
+.form-time-input::-webkit-datetime-edit-hour-field:focus,
+.form-time-input::-webkit-datetime-edit-minute-field:focus {
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 4px;
+  color: var(--accent);
+}
+
+.form-date-input::-webkit-datetime-edit-text,
+.form-date-input::-webkit-datetime-edit-day-field,
+.form-date-input::-webkit-datetime-edit-month-field,
+.form-date-input::-webkit-datetime-edit-year-field {
+  padding: 0 2px;
+}
+
+.form-date-input::-webkit-datetime-edit-text:focus,
+.form-date-input::-webkit-datetime-edit-day-field:focus,
+.form-date-input::-webkit-datetime-edit-month-field:focus,
+.form-date-input::-webkit-datetime-edit-year-field:focus {
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 4px;
+  color: var(--accent);
+}
+
+/* Key-Value Input Container */
+.form-key-value-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--bg-alt);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.form-key-value-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 10px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.form-key-value-item:hover {
+  background: var(--bg);
+  border-color: var(--border-soft);
+}
+
+.form-key-value-key {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 12px;
+  min-width: 80px;
+}
+
+.form-key-value-separator {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.form-key-value-value {
+  flex: 1;
+  color: var(--text);
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.form-key-value-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  background: rgba(239, 68, 68, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: var(--error);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.form-key-value-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.1);
+}
+
+.form-key-value-input {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 4px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.form-key-input,
+.form-value-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text);
+  transition: all 0.2s ease;
+}
+
+.form-key-input:focus,
+.form-value-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+  background: var(--bg);
+}
+
+.form-key-value-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.form-key-value-add:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+.form-key-value-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

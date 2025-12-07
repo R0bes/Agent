@@ -461,13 +461,12 @@ export const Avatar: React.FC<AvatarProps> = ({
   const emotionClass = emotion ? `avatar-emotion-${emotion}` : "";
   const draggingClass = isDragging ? "avatar-dragging" : "";
   const minimizedClass = minimized ? "avatar-minimized" : "";
-  const sidebarLedClass = minimized ? "avatar-sidebar-led" : "";
 
   // Use same element for both modes to enable smooth animation
   return (
     <div 
       ref={avatarRef}
-      className={`persona-avatar ${statusClass} ${emotionClass} ${draggingClass} ${minimizedClass} ${sidebarLedClass}`}
+      className={`persona-avatar ${statusClass} ${emotionClass} ${draggingClass} ${minimizedClass}`}
       style={{
         position: minimized ? 'absolute' : 'fixed',
         left: `${currentPosition.x}px`,

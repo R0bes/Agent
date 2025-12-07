@@ -2,262 +2,195 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AvatarPresentation } from './AvatarPresentation';
 import { useAvatarController } from './AvatarController';
 import { registerAllCapabilities } from './registerCapabilities';
-import type { AvatarPresentationMode, AvatarStatus, AvatarEmotion, AvatarPosition } from './types';
+import type { AvatarStatus, AvatarPosition } from './types';
+import { AVATAR_MIN_SIZE, AVATAR_MAX_SIZE, AVATAR_BASE_SIZE } from './types';
 
 // Register all capabilities on module load
 registerAllCapabilities();
 
 interface AvatarProps {
   status: AvatarStatus;
-  position?: AvatarPosition;
-  emotion?: AvatarEmotion;
-  mode?: AvatarPresentationMode;
-  onPositionChange?: (position: AvatarPosition) => void;
-  onDragEnd?: (position: AvatarPosition) => void;
-  onModeChange?: (mode: AvatarPresentationMode) => void;
-  onClick?: () => void;
-  onDoubleClick?: () => void;
-  onContextMenu?: (e: React.MouseEvent) => void;
-  isArrowKeyControl?: boolean;
+  position?: AvatarPosition;  // ZENTRUM-Koordinaten
+  size?: number;  // 0.25 - 1.75
+  onPositionChange?: (position: AvatarPosition) => void;  // Zentrum
+  onSizeChange?: (size: number) => void;
+  onDragEnd?: (position: AvatarPosition) => void;  // Zentrum
+  onContextMenu?: (e: React.MouseEvent) => void;  // AI-Menü
 }
 
 export const Avatar: React.FC<AvatarProps> = ({
   status,
   position: targetPosition,
-  emotion,
-  mode: externalMode,
+  size: targetSize = 1.0,  // Default: 100%
   onPositionChange,
+  onSizeChange,
   onDragEnd,
-  onModeChange: externalOnModeChange,
-  onClick,
-  onDoubleClick,
-  onContextMenu,
-  isArrowKeyControl = false
+  onContextMenu
 }) => {
-  // Internal state
-  const [internalMode, setInternalMode] = useState<AvatarPresentationMode>(externalMode || 'large');
-  const mode = externalMode ?? internalMode;
-
-  const [currentPosition, setCurrentPosition] = useState<AvatarPosition>(() =>
-    targetPosition || { x: 24, y: window.innerHeight / 2 }
-  );
-  const [savedPosition, setSavedPosition] = useState<AvatarPosition>(() =>
-    targetPosition || { x: 24, y: window.innerHeight / 2 }
-  );
+  // State: Minimal
+  const [currentPosition, setCurrentPosition] = useState<AvatarPosition>(() => {
+    if (targetPosition) {
+      return targetPosition;
+    }
+    // Default: Etwas weiter weg von der Ecke (Zentrum)
+    const defaultSize = AVATAR_BASE_SIZE * 1.0; // 40px
+    return { 
+      x: defaultSize + 40,  // 80px vom linken Rand (Avatar beginnt bei 40px)
+      y: defaultSize + 40    // 80px vom oberen Rand (Avatar beginnt bei 40px)
+    };
+  });
+  const [currentSize, setCurrentSize] = useState<number>(() => {
+    // Clamp initial size to valid range
+    return Math.max(AVATAR_MIN_SIZE, Math.min(AVATAR_MAX_SIZE, targetSize));
+  });
   const [isDragging, setIsDragging] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
 
+  // Refs für Drag
   const dragOffsetRef = useRef({ x: 0, y: 0 });
-  const dragStartPosRef = useRef<AvatarPosition | null>(null);
   const hasDraggedRef = useRef(false);
-  const currentDragPositionRef = useRef<AvatarPosition | null>(null);
-  const isDragEndingRef = useRef(false);
-  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Calculate sidebar position for small mode
-  const getSmallModePosition = useCallback((): AvatarPosition => {
-    const sidebar = document.querySelector('.sidebar');
-    const sidebarContent = document.querySelector('.sidebar-content');
-
-    if (sidebar && sidebarContent) {
-      const sidebarRect = sidebar.getBoundingClientRect();
-      const contentRect = sidebarContent.getBoundingClientRect();
-      const ledX = sidebarRect.left + sidebarRect.width / 2;
-      const ledY = contentRect.top + 16;
-      return { x: ledX, y: ledY };
-    }
-
-    return { x: 24, y: 16 };
-  }, []);
-
-  // Handle mode change
-  const handleModeChange = useCallback((newMode: AvatarPresentationMode) => {
-    if (newMode === 'small') {
-      // Save current position before switching to small
-      setSavedPosition(currentPosition);
-      setCurrentPosition(getSmallModePosition());
-    } else {
-      // Restore saved position when switching to large
-      if (savedPosition) {
-        setCurrentPosition(savedPosition);
-      }
-    }
-
-    if (externalOnModeChange) {
-      externalOnModeChange(newMode);
-    } else {
-      setInternalMode(newMode);
-    }
-  }, [currentPosition, savedPosition, getSmallModePosition, externalOnModeChange]);
-
-  // Use controller hook
+  // Controller Hook
   useAvatarController({
     status,
-    mode,
     position: currentPosition,
-    onModeChange: handleModeChange,
+    size: currentSize,
     onPositionChange: (pos) => {
       setCurrentPosition(pos);
-      if (onPositionChange) {
-        onPositionChange(pos);
-      }
+      onPositionChange?.(pos);
+    },
+    onSizeChange: (newSize) => {
+      // Clamp size to valid range
+      const clampedSize = Math.max(AVATAR_MIN_SIZE, Math.min(AVATAR_MAX_SIZE, newSize));
+      setCurrentSize(clampedSize);
+      onSizeChange?.(clampedSize);
     },
     onCapabilityExecute: (capabilityId) => {
       console.log('[Avatar] Capability executed:', capabilityId);
     }
   });
 
-  // Handle target position changes (from parent)
+  // Sync mit externen Props - nur wenn nicht am Draggen
   useEffect(() => {
-    if (isDragging || isDragEndingRef.current || mode === 'small' || isAnimating) {
-      return;
-    }
-
-    if (targetPosition) {
+    if (!isDragging && targetPosition) {
       const posChanged = Math.abs(targetPosition.x - currentPosition.x) > 1 ||
                          Math.abs(targetPosition.y - currentPosition.y) > 1;
-
       if (posChanged) {
         setCurrentPosition(targetPosition);
-        setSavedPosition(targetPosition);
       }
     }
-  }, [targetPosition, isDragging, mode, isAnimating, currentPosition]);
+  }, [targetPosition, isDragging]); // currentPosition aus Dependencies entfernt, um Loop zu vermeiden
 
-  // Drag and drop handling
+  useEffect(() => {
+    if (!isDragging && targetSize !== undefined) {
+      const clampedSize = Math.max(AVATAR_MIN_SIZE, Math.min(AVATAR_MAX_SIZE, targetSize));
+      const sizeChanged = Math.abs(clampedSize - currentSize) > 0.01;
+      if (sizeChanged) {
+        setCurrentSize(clampedSize);
+      }
+    }
+  }, [targetSize, isDragging, currentSize]);
+
+  // Mausrad-Handler für Skalierung
+  const handleWheel = useCallback((delta: number) => {
+    // delta: -0.015 oder +0.015
+    const newSize = Math.max(AVATAR_MIN_SIZE, Math.min(AVATAR_MAX_SIZE, currentSize + delta));
+    setCurrentSize(newSize);
+    onSizeChange?.(newSize);
+  }, [currentSize, onSizeChange]);
+
+  // Drag Handler - WICHTIG: Position ist das Zentrum
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    if (mode === 'small') return;
-
+    if (e.button !== 0) return; // Nur linke Maustaste
+    
     e.preventDefault();
     e.stopPropagation();
 
     hasDraggedRef.current = false;
-    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
+    
+    // Speichere die Startposition für Offset-Berechnung
+    const startPosition = { ...currentPosition };
+    
+    // Berechne Offset: Mausposition minus Avatar-Zentrum
+    // Da position das Zentrum ist, ist der Offset einfach die Differenz
     dragOffsetRef.current = {
-      x: e.clientX - currentPosition.x,
-      y: e.clientY - currentPosition.y
+      x: e.clientX - startPosition.x,
+      y: e.clientY - startPosition.y
     };
 
+    let lastPosition: AvatarPosition = startPosition;
+
     const moveHandler = (moveEvent: MouseEvent) => {
-      if (!dragStartPosRef.current) return;
-
-      const deltaX = Math.abs(moveEvent.clientX - dragStartPosRef.current.x);
-      const deltaY = Math.abs(moveEvent.clientY - dragStartPosRef.current.y);
-      const dragThreshold = 3;
-
-      if (deltaX > dragThreshold || deltaY > dragThreshold) {
-        moveEvent.preventDefault();
+      const deltaX = Math.abs(moveEvent.clientX - startPosition.x - dragOffsetRef.current.x);
+      const deltaY = Math.abs(moveEvent.clientY - startPosition.y - dragOffsetRef.current.y);
+      
+      if (deltaX > 3 || deltaY > 3) {
         hasDraggedRef.current = true;
         setIsDragging(true);
 
+        // Neue Position: Mausposition minus Offset
+        // Das gibt uns das neue Zentrum
+        const pixelSize = AVATAR_BASE_SIZE * currentSize;
+        const halfSize = pixelSize / 2;
+        
         const newPosition: AvatarPosition = {
-          x: Math.max(20, Math.min(window.innerWidth - 20, moveEvent.clientX - dragOffsetRef.current.x)),
-          y: Math.max(20, Math.min(window.innerHeight - 20, moveEvent.clientY - dragOffsetRef.current.y))
+          x: Math.max(halfSize, Math.min(window.innerWidth - halfSize, moveEvent.clientX - dragOffsetRef.current.x)),
+          y: Math.max(halfSize, Math.min(window.innerHeight - halfSize, moveEvent.clientY - dragOffsetRef.current.y))
         };
 
-        currentDragPositionRef.current = newPosition;
+        lastPosition = newPosition;
         setCurrentPosition(newPosition);
       }
     };
 
     const upHandler = () => {
       const wasDragging = hasDraggedRef.current;
-      dragStartPosRef.current = null;
       document.removeEventListener('mousemove', moveHandler, { capture: true });
       document.removeEventListener('mouseup', upHandler, { capture: true });
-      document.removeEventListener('mouseleave', upHandler, { capture: true });
 
       if (wasDragging) {
-        isDragEndingRef.current = true;
-        const finalPosition = currentDragPositionRef.current || currentPosition;
-        setCurrentPosition(finalPosition);
-
-        if (onDragEnd) {
-          onDragEnd(finalPosition);
-        }
-        if (onPositionChange) {
-          onPositionChange(finalPosition);
-        }
-
-        currentDragPositionRef.current = null;
-
-        setTimeout(() => {
-          setIsDragging(false);
-          hasDraggedRef.current = false;
-          setTimeout(() => {
-            isDragEndingRef.current = false;
-          }, 200);
-        }, 50);
+        // Verwende lastPosition statt currentPosition (React State ist asynchron)
+        onDragEnd?.(lastPosition);
+        onPositionChange?.(lastPosition);
+        // Warte kurz, bevor isDragging auf false gesetzt wird, damit die Position nicht überschrieben wird
+        setTimeout(() => setIsDragging(false), 100);
       } else {
         hasDraggedRef.current = false;
-        currentDragPositionRef.current = null;
       }
     };
 
-    const options = { capture: true, passive: false };
-    document.addEventListener('mousemove', moveHandler, options);
-    document.addEventListener('mouseup', upHandler, options);
-    document.addEventListener('mouseleave', upHandler, options);
-  }, [mode, currentPosition, onDragEnd, onPositionChange]);
+    document.addEventListener('mousemove', moveHandler, { capture: true, passive: false });
+    document.addEventListener('mouseup', upHandler, { capture: true });
+  }, [currentPosition, currentSize, onDragEnd, onPositionChange]);
 
-  const handleClick = (e: React.MouseEvent) => {
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-      clickTimeoutRef.current = null;
-    }
+  // Click Handler - ENTFERNT (Poke nur über Menü)
+  // const handleClick = useCallback((e: React.MouseEvent) => {
+  //   if (!hasDraggedRef.current && !isDragging && onClick) {
+  //     onClick();
+  //   }
+  // }, [onClick, isDragging]);
 
-    if (!hasDraggedRef.current && !isDragging) {
-      clickTimeoutRef.current = setTimeout(() => {
-        if (!hasDraggedRef.current && !isDragging && onClick) {
-          onClick();
-        }
-        clickTimeoutRef.current = null;
-      }, 200);
-    }
-  };
+  // Double-Click: NICHT implementiert (leer lassen)
 
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-      clickTimeoutRef.current = null;
-    }
-
+  // Right-Click: AI-Menü
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-
-    if (!isDragging) {
-      handleModeChange(mode === 'small' ? 'large' : 'small');
-      if (onDoubleClick) {
-        onDoubleClick();
-      }
+    if (onContextMenu) {
+      onContextMenu(e);
     }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (clickTimeoutRef.current) {
-        clearTimeout(clickTimeoutRef.current);
-      }
-    };
-  }, []);
+  }, [onContextMenu]);
 
   return (
     <AvatarPresentation
-      mode={mode}
-      status={status}
       position={currentPosition}
-      emotion={emotion}
-      isAnimating={isAnimating}
+      size={currentSize}
+      status={status}
       isDragging={isDragging}
       onMouseDown={handleMouseDown}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
-      onContextMenu={onContextMenu}
+      onContextMenu={handleContextMenu}
+      onWheel={handleWheel}
     />
   );
 };
 
 // Re-export types for backward compatibility
-export type { AvatarPresentationMode, AvatarStatus, AvatarEmotion };
-
+export type { AvatarStatus };

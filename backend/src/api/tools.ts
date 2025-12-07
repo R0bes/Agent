@@ -221,6 +221,37 @@ export async function registerToolsRoutes(app: FastifyInstance) {
     }
   });
 
+  // Get tools from a specific tool set
+  app.get<{ Params: { id: string } }>("/api/tool-sets/:id/tools", async (req, reply) => {
+    const { id } = req.params;
+    
+    logDebug("Tools API: List tools from tool set request", {
+      toolSetId: id,
+      requestId: req.id
+    });
+
+    try {
+      const tools = await toolboxService.getToolsFromToolSet(id);
+      
+      logInfo("Tools API: Tools from tool set retrieved", {
+        toolSetId: id,
+        toolCount: tools.length,
+        requestId: req.id
+      });
+
+      return reply.send({ ok: true, data: tools });
+    } catch (err) {
+      logError("Tools API: Failed to list tools from tool set", err, {
+        toolSetId: id,
+        requestId: req.id
+      });
+      return reply.status(500).send({
+        ok: false,
+        error: err instanceof Error ? err.message : "Failed to list tools from tool set"
+      });
+    }
+  });
+
   // Start InternalToolSet
   app.post<{ Params: { id: string } }>("/api/tool-sets/:id/start", async (req, reply) => {
     const { id } = req.params;
@@ -341,6 +372,55 @@ export async function registerToolsRoutes(app: FastifyInstance) {
       return reply.status(500).send({
         ok: false,
         error: err instanceof Error ? err.message : "Failed to disconnect tool set"
+      });
+    }
+  });
+
+  // Call a tool (execute tool with arguments)
+  app.post<{ Params: { name: string }; Body: { args?: any } }>("/api/tools/:name/call", async (req, reply) => {
+    const { name } = req.params;
+    const { args = {} } = req.body;
+    
+    logDebug("Tools API: Call tool request", {
+      toolName: name,
+      requestId: req.id,
+      hasArgs: !!args && Object.keys(args).length > 0
+    });
+
+    // Create a minimal ToolContext for UI calls
+    const ctx = {
+      userId: "ui-user",
+      conversationId: "ui-conversation",
+      source: {
+        id: "ui",
+        kind: "gui" as const,
+        label: "Toolbox UI",
+        meta: {}
+      }
+    };
+
+    try {
+      const result = await toolboxService.executeTool(name, args, ctx);
+      
+      logInfo("Tools API: Tool executed", {
+        toolName: name,
+        success: result.ok,
+        requestId: req.id
+      });
+
+      return reply.send({
+        ok: result.ok,
+        data: result.data,
+        error: result.error
+      });
+    } catch (err) {
+      logError("Tools API: Failed to execute tool", err, {
+        toolName: name,
+        requestId: req.id
+      });
+      return reply.status(500).send({
+        ok: false,
+        error: err instanceof Error ? err.message : "Failed to execute tool"
       });
     }
   });

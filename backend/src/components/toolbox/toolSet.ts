@@ -13,9 +13,19 @@ import type { ToolContext, ToolResult } from "../types";
 export interface ToolDescriptor {
   name: string;
   description: string;
-  shortDescription: string;
+  shortDescription: string; // Max 50 characters
   parameters?: Record<string, unknown>;
   examples?: any[];
+}
+
+/**
+ * Helper function to ensure shortDescription is max 50 characters
+ */
+export function truncateShortDescription(description: string, maxLength: number = 50): string {
+  if (description.length <= maxLength) {
+    return description;
+  }
+  return description.substring(0, maxLength - 3) + "...";
 }
 
 /**

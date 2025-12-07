@@ -81,12 +81,28 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
   const [formType, setFormType] = useState<TaskType>("tool_call");
   const [formIsRecurring, setFormIsRecurring] = useState(false);
   const [formDate, setFormDate] = useState("");
-  const [formTime, setFormTime] = useState("09:00");
+  const [formTime, setFormTime] = useState("");
   const [formRecurringPattern, setFormRecurringPattern] = useState("daily");
   const [formToolName, setFormToolName] = useState("");
-  const [formArgs, setFormArgs] = useState("{}");
+  const [formArgs, setFormArgs] = useState<Record<string, any>>({});
+  const [formArgsKey, setFormArgsKey] = useState("");
+  const [formArgsValue, setFormArgsValue] = useState("");
   const [formEventTopic, setFormEventTopic] = useState("");
-  const [formEventPayload, setFormEventPayload] = useState("{}");
+  const [formEventPayload, setFormEventPayload] = useState<Record<string, any>>({});
+  const [formEventPayloadKey, setFormEventPayloadKey] = useState("");
+  const [formEventPayloadValue, setFormEventPayloadValue] = useState("");
+
+  // Available event topics (sensible options)
+  const eventTopics = [
+    { value: "scheduled_reminder", label: "Scheduled Reminder" },
+    { value: "daily_summary", label: "Daily Summary" },
+    { value: "memory_compaction", label: "Memory Compaction" },
+    { value: "system_check", label: "System Check" },
+    { value: "backup_task", label: "Backup Task" },
+    { value: "cleanup_task", label: "Cleanup Task" },
+    { value: "notification", label: "Notification" },
+    { value: "report_generation", label: "Report Generation" }
+  ];
   
   const { ws } = useWebSocket();
   const userId = "user-123";
@@ -117,6 +133,10 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
   useEffect(() => {
     fetchTasks();
     fetchTools();
+    // Set default date/time to now
+    const now = new Date();
+    setFormDate(now.toISOString().split('T')[0]);
+    setFormTime(now.toTimeString().slice(0, 5));
   }, []);
 
   // Close panel when clicking outside
@@ -188,13 +208,13 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
         }
         payload = {
           toolName: formToolName,
-          args: JSON.parse(formArgs),
+          args: formArgs,
           eventTopic: formEventTopic
         };
       } else if (formType === "event") {
         payload = { 
           eventTopic: formEventTopic,
-          eventPayload: JSON.parse(formEventPayload)
+          eventPayload: formEventPayload
         };
       }
 
@@ -223,8 +243,13 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
         cronExpression = dateToCron(formDate, formTime);
       }
 
-      const response = await fetch("/api/scheduler/tasks", {
-        method: "POST",
+      const url = editingTask 
+        ? `/api/scheduler/tasks/${editingTask.id}`
+        : "/api/scheduler/tasks";
+      const method = editingTask ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: formType,
@@ -232,7 +257,7 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
           payload,
           userId,
           conversationId,
-          enabled: true
+          enabled: editingTask ? editingTask.enabled : true
         })
       });
 
@@ -242,7 +267,7 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
         resetForm();
         await fetchTasks();
       } else {
-        setError(data.error || "Failed to create task");
+        setError(data.error || `Failed to ${editingTask ? 'update' : 'create'} task`);
       }
     } catch (err: any) {
       setError(err.message || "Failed to create task");
@@ -286,16 +311,45 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
   };
 
   const resetForm = () => {
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().slice(0, 5);
+    
     setFormType("tool_call");
     setFormIsRecurring(false);
-    setFormDate("");
-    setFormTime("09:00");
+    setFormDate(dateStr);
+    setFormTime(timeStr);
     setFormRecurringPattern("daily");
     setFormToolName("");
-    setFormArgs("{}");
+    setFormArgs({});
+    setFormArgsKey("");
+    setFormArgsValue("");
     setFormEventTopic("");
-    setFormEventPayload("{}");
+    setFormEventPayload({});
+    setFormEventPayloadKey("");
+    setFormEventPayloadValue("");
     setEditingTask(null);
+  };
+
+  const loadTaskForEdit = (task: ScheduledTask) => {
+    const { date, time, isRecurring } = cronToDateTime(task.schedule);
+    
+    setFormType(task.type);
+    setFormIsRecurring(isRecurring);
+    setFormDate(date || new Date().toISOString().split('T')[0]);
+    setFormTime(time || new Date().toTimeString().slice(0, 5));
+    setFormRecurringPattern(isRecurring ? "daily" : "daily");
+    setFormEventTopic(task.payload.eventTopic || "");
+    
+    if (task.type === "tool_call") {
+      setFormToolName(task.payload.toolName || "");
+      setFormArgs(task.payload.args || {});
+    } else {
+      setFormEventPayload(task.payload.eventPayload || {});
+    }
+    
+    setEditingTask(task);
+    setShowForm(true);
   };
 
   const getTaskDisplayName = (task: ScheduledTask): string => {
@@ -413,60 +467,55 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
 
           <div className="form-group">
             <label>Event Topic (Target)</label>
-            <input
+            <select
               className="form-input"
-              type="text"
               value={formEventTopic}
               onChange={(e) => setFormEventTopic(e.target.value)}
-              placeholder="e.g., scheduled_reminder, daily_summary"
-            />
+            >
+              <option value="">Select event topic...</option>
+              {eventTopics.map((topic) => (
+                <option key={topic.value} value={topic.value}>
+                  {topic.label}
+                </option>
+              ))}
+            </select>
             <small>The event topic where results will be sent</small>
           </div>
 
           <div className="form-group">
-            <label>Schedule Type</label>
-            <div className="form-radio-group">
-              <label className="form-radio">
+            <label>Schedule</label>
+            <div className="form-schedule-row">
+              <div className="form-datetime-wrapper">
+                <CalendarIcon className="form-datetime-icon" />
                 <input
-                  type="radio"
-                  checked={!formIsRecurring}
-                  onChange={() => setFormIsRecurring(false)}
-                />
-                <span>One-time</span>
-              </label>
-              <label className="form-radio">
-                <input
-                  type="radio"
-                  checked={formIsRecurring}
-                  onChange={() => setFormIsRecurring(true)}
-                />
-                <span>Recurring</span>
-              </label>
-            </div>
-          </div>
-
-          {!formIsRecurring ? (
-            <div className="form-group">
-              <label>Date & Time</label>
-              <div className="form-datetime-group">
-                <input
-                  className="form-input"
+                  className="form-date-input"
                   type="date"
                   value={formDate}
                   onChange={(e) => setFormDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
+                  disabled={formIsRecurring}
                 />
+              </div>
+              <div className="form-datetime-wrapper">
+                <ClockIcon className="form-datetime-icon" />
                 <input
-                  className="form-input"
+                  className="form-time-input"
                   type="time"
                   value={formTime}
                   onChange={(e) => setFormTime(e.target.value)}
                 />
               </div>
+              <label className="form-recurring-checkbox">
+                <input
+                  type="checkbox"
+                  checked={formIsRecurring}
+                  onChange={(e) => setFormIsRecurring(e.target.checked)}
+                />
+                <span>Recurring</span>
+              </label>
             </div>
-          ) : (
-            <>
-              <div className="form-group">
+            {formIsRecurring && (
+              <div className="form-group" style={{ marginTop: 'var(--spacing-sm)' }}>
                 <label>Pattern</label>
                 <select className="form-input" value={formRecurringPattern} onChange={(e) => setFormRecurringPattern(e.target.value)}>
                   <option value="hourly">Hourly</option>
@@ -474,17 +523,8 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
                   <option value="weekly">Weekly</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label>Time</label>
-                <input
-                  className="form-input"
-                  type="time"
-                  value={formTime}
-                  onChange={(e) => setFormTime(e.target.value)}
-                />
-              </div>
-            </>
-          )}
+            )}
+          </div>
 
           {formType === "tool_call" && (
             <>
@@ -500,28 +540,132 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
                 </select>
               </div>
               <div className="form-group">
-                <label>Arguments (JSON)</label>
-                <textarea
-                  className="form-input"
-                  value={formArgs}
-                  onChange={(e) => setFormArgs(e.target.value)}
-                  placeholder='{"param": "value"}'
-                  rows={3}
-                />
+                <label>Arguments</label>
+                <div className="form-key-value-container">
+                  {Object.entries(formArgs).map(([key, value]) => (
+                    <div key={key} className="form-key-value-item">
+                      <span className="form-key-value-key">{key}</span>
+                      <span className="form-key-value-separator">:</span>
+                      <span className="form-key-value-value">{String(value)}</span>
+                      <button
+                        type="button"
+                        className="form-key-value-remove"
+                        onClick={() => {
+                          const newArgs = { ...formArgs };
+                          delete newArgs[key];
+                          setFormArgs(newArgs);
+                        }}
+                        title="Remove"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <div className="form-key-value-input">
+                    <input
+                      type="text"
+                      className="form-input form-key-input"
+                      placeholder="Key"
+                      value={formArgsKey}
+                      onChange={(e) => setFormArgsKey(e.target.value)}
+                    />
+                    <span className="form-key-value-separator">:</span>
+                    <input
+                      type="text"
+                      className="form-input form-value-input"
+                      placeholder="Value"
+                      value={formArgsValue}
+                      onChange={(e) => setFormArgsValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && formArgsKey && formArgsValue) {
+                          setFormArgs({ ...formArgs, [formArgsKey]: formArgsValue });
+                          setFormArgsKey("");
+                          setFormArgsValue("");
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="form-key-value-add"
+                      onClick={() => {
+                        if (formArgsKey && formArgsValue) {
+                          setFormArgs({ ...formArgs, [formArgsKey]: formArgsValue });
+                          setFormArgsKey("");
+                          setFormArgsValue("");
+                        }
+                      }}
+                      disabled={!formArgsKey || !formArgsValue}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
               </div>
             </>
           )}
 
           {formType === "event" && (
             <div className="form-group">
-              <label>Event Payload (JSON)</label>
-              <textarea
-                className="form-input"
-                value={formEventPayload}
-                onChange={(e) => setFormEventPayload(e.target.value)}
-                placeholder='{"message": "value", "data": {}}'
-                rows={3}
-              />
+              <label>Event Payload</label>
+              <div className="form-key-value-container">
+                {Object.entries(formEventPayload).map(([key, value]) => (
+                  <div key={key} className="form-key-value-item">
+                    <span className="form-key-value-key">{key}</span>
+                    <span className="form-key-value-separator">:</span>
+                    <span className="form-key-value-value">{String(value)}</span>
+                    <button
+                      type="button"
+                      className="form-key-value-remove"
+                      onClick={() => {
+                        const newPayload = { ...formEventPayload };
+                        delete newPayload[key];
+                        setFormEventPayload(newPayload);
+                      }}
+                      title="Remove"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <div className="form-key-value-input">
+                  <input
+                    type="text"
+                    className="form-input form-key-input"
+                    placeholder="Key"
+                    value={formEventPayloadKey}
+                    onChange={(e) => setFormEventPayloadKey(e.target.value)}
+                  />
+                  <span className="form-key-value-separator">:</span>
+                  <input
+                    type="text"
+                    className="form-input form-value-input"
+                    placeholder="Value"
+                    value={formEventPayloadValue}
+                    onChange={(e) => setFormEventPayloadValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && formEventPayloadKey && formEventPayloadValue) {
+                        setFormEventPayload({ ...formEventPayload, [formEventPayloadKey]: formEventPayloadValue });
+                        setFormEventPayloadKey("");
+                        setFormEventPayloadValue("");
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="form-key-value-add"
+                    onClick={() => {
+                      if (formEventPayloadKey && formEventPayloadValue) {
+                        setFormEventPayload({ ...formEventPayload, [formEventPayloadKey]: formEventPayloadValue });
+                        setFormEventPayloadKey("");
+                        setFormEventPayloadValue("");
+                      }
+                    }}
+                    disabled={!formEventPayloadKey || !formEventPayloadValue}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -535,7 +679,7 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
             <IconButton
               icon={<span>✓</span>}
               onClick={handleCreateTask}
-              title="Create Task"
+              title={editingTask ? "Update Task" : "Create Task"}
               variant="accent"
             />
           </div>
@@ -552,7 +696,12 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
         ) : (
           <ul className="panel-list">
             {tasks.map((task) => (
-              <li key={task.id} className="scheduler-task-card">
+              <li 
+                key={task.id} 
+                className="scheduler-task-card"
+                onClick={() => loadTaskForEdit(task)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="task-card-header">
                   <div className="task-card-icon">
                     {task.type === "tool_call" ? (
@@ -576,12 +725,18 @@ export const SchedulerPanel: React.FC<SchedulerPanelProps> = ({ isOpen, onToggle
                   <div className="task-card-actions">
                     <button
                       className={`toggle-switch ${task.enabled ? "active" : ""}`}
-                      onClick={() => handleToggleTask(task.id, task.enabled)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleTask(task.id, task.enabled);
+                      }}
                       title={task.enabled ? "Disable" : "Enable"}
                     />
                     <button
                       className="task-delete-btn"
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTask(task.id);
+                      }}
                       title="Delete"
                     >
                       <TrashIcon />

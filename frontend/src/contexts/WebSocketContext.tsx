@@ -60,6 +60,7 @@ export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({ children 
     ["message_created", "job_updated", "memory_updated", "gui_action", "avatar_command"].forEach(eventType => {
       socketInstance.on(eventType, (data) => {
         console.log(`[SOCKET-MESSAGE] ${eventType} received:`, data);
+        // data is already the full event object { type, payload } from backend
         emit(data);
       });
     });

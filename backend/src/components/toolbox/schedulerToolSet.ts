@@ -29,7 +29,7 @@ export class SchedulerToolSet extends SystemToolSet {
       {
         name: "schedule_worker",
         description: "Schedules and triggers background workers (e.g. memory workers) on behalf of the persona. This tool allows the persona to schedule background tasks like memory compaction, which can aggregate older messages into summaries or extract stable facts/preferences. Use this tool when you detect that memory clean-up or summarisation should happen in the background.",
-        shortDescription: "Schedules and triggers background workers (e.g. memory workers) on behalf of the persona.",
+        shortDescription: "Schedules and triggers background workers.",
         parameters: {
           type: "object",
           properties: {

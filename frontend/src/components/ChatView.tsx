@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { emit } from "../eventBus";
+import { subscribe } from "../eventBus";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { IconButton } from "./IconButton";
 import { SendIcon, MicrophoneIcon, StopIcon } from "./Icons";
@@ -18,7 +18,7 @@ export const ChatView: React.FC = () => {
   const [text, setText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState({ seconds: 0, milliseconds: 0 });
-  const { status, ws } = useWebSocket();
+  const { status } = useWebSocket();
   const listRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -106,35 +106,20 @@ export const ChatView: React.FC = () => {
     };
   }, [isRecording]);
 
-  // Listen to WebSocket messages from context
+  // Listen to message_created events from event bus
   useEffect(() => {
-    if (!ws) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === "connection_established") {
-          return;
-        }
-        
-        if (data.type === "message_created") {
-          const m = data.payload as Message;
-          setMessages((prev) => [...prev, m]);
-          scrollToBottom();
-          const el = document.getElementById("persona-status");
-          if (el) el.textContent = "Ready";
-        }
-      } catch (err) {
-        console.error("Invalid WS message", err);
+    const unsubscribe = subscribe((event) => {
+      if (event.type === "message_created") {
+        const m = event.payload as Message;
+        setMessages((prev) => [...prev, m]);
+        scrollToBottom();
+        const el = document.getElementById("persona-status");
+        if (el) el.textContent = "Ready";
       }
-    };
+    });
 
-    ws.addEventListener("message", handleMessage);
-    return () => {
-      ws.removeEventListener("message", handleMessage);
-    };
-  }, [ws]);
+    return unsubscribe;
+  }, []);
 
   function scrollToBottom() {
     requestAnimationFrame(() => {
@@ -208,16 +193,16 @@ export const ChatView: React.FC = () => {
       const centerY = currentCanvas.height / 2;
       const samples = amplitudeHistoryRef.current.length;
       
-      // Draw horizontal center line (lightning blue)
-      currentCtx.strokeStyle = "rgba(0, 191, 255, 0.3)";
+      // Draw horizontal center line (user blue)
+      currentCtx.strokeStyle = "rgba(59, 130, 246, 0.3)";
       currentCtx.lineWidth = 1;
       currentCtx.beginPath();
       currentCtx.moveTo(0, centerY);
       currentCtx.lineTo(currentCanvas.width, centerY);
       currentCtx.stroke();
       
-      // Draw waveform bars (lightning blue)
-      currentCtx.fillStyle = "rgba(0, 191, 255, 0.9)";
+      // Draw waveform bars (user blue)
+      currentCtx.fillStyle = "rgba(59, 130, 246, 0.9)";
       
       const availableWidth = currentCanvas.width;
       const barWidth = 2;
@@ -226,8 +211,8 @@ export const ChatView: React.FC = () => {
       const numBars = Math.floor(availableWidth / totalBarWidth);
       
       if (samples === 0) {
-        // Draw initial line when starting (lightning blue)
-        currentCtx.strokeStyle = "rgba(0, 191, 255, 0.9)";
+        // Draw initial line when starting (user blue)
+        currentCtx.strokeStyle = "rgba(59, 130, 246, 0.9)";
         currentCtx.lineWidth = 2;
         currentCtx.beginPath();
         currentCtx.moveTo(availableWidth, centerY);

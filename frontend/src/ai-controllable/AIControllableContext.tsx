@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
 import type { AIControllableElement, AIControllableElementType } from './types';
 
 interface AIControllableContextType {
@@ -22,33 +22,38 @@ export const useAIControllableContext = () => {
 };
 
 export const AIControllableProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [elements] = useState(new Map<string, AIControllableElement>());
+  // Use useRef for elements map to avoid unnecessary re-renders
+  const elementsRef = useRef(new Map<string, AIControllableElement>());
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
   const register = useCallback((element: AIControllableElement) => {
-    elements.set(element.id, element);
-    console.log('[AIControllable] Registered element:', element.id, element.type);
-  }, [elements]);
+    elementsRef.current.set(element.id, element);
+    // Only log in development mode
+    if (import.meta.env.DEV) {
+      console.log('[AIControllable] Registered element:', element.id, element.type);
+    }
+  }, []);
 
   const unregister = useCallback((id: string) => {
-    elements.delete(id);
-    console.log('[AIControllable] Unregistered element:', id);
-    if (selectedElementId === id) {
-      setSelectedElementId(null);
+    elementsRef.current.delete(id);
+    // Only log in development mode
+    if (import.meta.env.DEV) {
+      console.log('[AIControllable] Unregistered element:', id);
     }
-  }, [elements, selectedElementId]);
+    setSelectedElementId(prev => prev === id ? null : prev);
+  }, []);
 
   const getElement = useCallback((id: string) => {
-    return elements.get(id);
-  }, [elements]);
+    return elementsRef.current.get(id);
+  }, []);
 
   const getAllElements = useCallback(() => {
-    return Array.from(elements.values());
-  }, [elements]);
+    return Array.from(elementsRef.current.values());
+  }, []);
 
   const getElementsByType = useCallback((type: AIControllableElementType) => {
-    return Array.from(elements.values()).filter(el => el.type === type);
-  }, [elements]);
+    return Array.from(elementsRef.current.values()).filter(el => el.type === type);
+  }, []);
 
   return (
     <AIControllableContext.Provider

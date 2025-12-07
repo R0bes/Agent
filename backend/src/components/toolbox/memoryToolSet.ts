@@ -37,7 +37,7 @@ export class MemoryToolSet extends SystemToolSet {
       {
         name: "query_memories",
         description: "Searches for memories that are semantically similar to the provided query text. This tool uses vector embeddings to find the most relevant memories based on meaning, not just keyword matching. Returns a list of memories with their similarity scores, sorted by relevance. Use this when you need to find information that the user has mentioned before or when looking for context about a specific topic.",
-        shortDescription: "Search for memories using semantic similarity search.",
+        shortDescription: "Search for memories using semantic similarity.",
         parameters: {
           type: "object",
           properties: {
