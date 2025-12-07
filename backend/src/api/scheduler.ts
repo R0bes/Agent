@@ -17,7 +17,7 @@ export async function registerSchedulerRoutes(app: FastifyInstance) {
     });
 
     try {
-      const tasks = scheduleStore.list();
+      const tasks = await scheduleStore.list();
       
       logInfo("Scheduler API: Tasks list retrieved", {
         taskCount: tasks.length,
@@ -45,7 +45,7 @@ export async function registerSchedulerRoutes(app: FastifyInstance) {
       requestId: req.id
     });
 
-    const task = scheduleStore.get(id);
+    const task = await scheduleStore.get(id);
 
     if (!task) {
       logWarn("Scheduler API: Task not found", {
@@ -118,7 +118,7 @@ export async function registerSchedulerRoutes(app: FastifyInstance) {
       // Emit event for WebSocket updates
       await eventBus.emit({
         type: "scheduler_task_updated",
-        payload: { tasks: scheduleStore.list() }
+        payload: { tasks: await scheduleStore.list() }
       });
 
       return reply.status(201).send({ ok: true, data: task });
@@ -164,7 +164,7 @@ export async function registerSchedulerRoutes(app: FastifyInstance) {
       // Emit event for WebSocket updates
       await eventBus.emit({
         type: "scheduler_task_updated",
-        payload: { tasks: scheduleStore.list() }
+        payload: { tasks: await scheduleStore.list() }
       });
 
       return reply.send({ ok: true, data: task });
@@ -211,7 +211,7 @@ export async function registerSchedulerRoutes(app: FastifyInstance) {
       // Emit event for WebSocket updates
       await eventBus.emit({
         type: "scheduler_task_updated",
-        payload: { tasks: scheduleStore.list() }
+        payload: { tasks: await scheduleStore.list() }
       });
 
       return reply.send({ ok: true, data: { deleted: true } });
@@ -258,7 +258,7 @@ export async function registerSchedulerRoutes(app: FastifyInstance) {
       // Emit event for WebSocket updates
       await eventBus.emit({
         type: "scheduler_task_updated",
-        payload: { tasks: scheduleStore.list() }
+        payload: { tasks: await scheduleStore.list() }
       });
 
       return reply.send({ ok: true, data: task });
@@ -305,7 +305,7 @@ export async function registerSchedulerRoutes(app: FastifyInstance) {
       // Emit event for WebSocket updates
       await eventBus.emit({
         type: "scheduler_task_updated",
-        payload: { tasks: scheduleStore.list() }
+        payload: { tasks: await scheduleStore.list() }
       });
 
       return reply.send({ ok: true, data: task });

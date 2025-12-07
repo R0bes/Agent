@@ -4,13 +4,38 @@ import { useWebSocket } from "../contexts/WebSocketContext";
 import { IconButton } from "./IconButton";
 import { SendIcon, MicrophoneIcon, StopIcon } from "./Icons";
 
-type MessageRole = "user" | "assistant";
+type MessageRole = "user" | "assistant" | "tool" | "system";
 
 interface Message {
   id: string;
   role: MessageRole;
   content: string;
   createdAt: string;
+  conversationId?: string;
+  metadata?: {
+    toolName?: string;
+    toolArgs?: any;
+    toolResult?: any;
+    jobId?: string;
+    jobStatus?: string;
+    processingDuration?: number;
+    sourceKind?: string;
+    llmCalls?: Array<{ role: string; content: string; model?: string }>;
+    contextInfo?: {
+      historyCount?: number;
+      memoryCount?: number;
+      estimatedTokens?: number;
+    };
+    toolExecutions?: Array<{
+      toolName: string;
+      args: any;
+      status: string;
+      result?: any;
+      timestamp?: string;
+      completedAt?: string;
+    }>;
+    [key: string]: any;
+  };
 }
 
 export const ChatView: React.FC = () => {
@@ -18,7 +43,9 @@ export const ChatView: React.FC = () => {
   const [text, setText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState({ seconds: 0, milliseconds: 0 });
+  const [showMeta, setShowMeta] = useState(false);
   const { status } = useWebSocket();
+  const metaDataRef = useRef<Map<string, any>>(new Map()); // Store meta data by message ID
   const listRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -106,20 +133,154 @@ export const ChatView: React.FC = () => {
     };
   }, [isRecording]);
 
-  // Listen to message_created events from event bus
+  // Listen to all relevant events for meta information
   useEffect(() => {
     const unsubscribe = subscribe((event) => {
+      console.log("[ChatView] Event received:", event);
+      
       if (event.type === "message_created") {
+        console.log("[ChatView] message_created payload:", event.payload);
         const m = event.payload as Message;
-        setMessages((prev) => [...prev, m]);
+        console.log("[ChatView] Adding message to state:", m);
+        
+        // Merge with any collected meta data
+        const messageId = m.id;
+        const metaData = metaDataRef.current.get(messageId) || {};
+        const messageWithMeta: Message = {
+          ...m,
+          metadata: {
+            ...m.metadata,
+            ...metaData
+          }
+        };
+        
+        setMessages((prev) => {
+          console.log("[ChatView] Previous messages:", prev);
+          const newMessages = [...prev, messageWithMeta];
+          console.log("[ChatView] New messages:", newMessages);
+          return newMessages;
+        });
+        
+        // Keep meta data for future updates
+        if (Object.keys(metaData).length > 0) {
+          metaDataRef.current.set(messageId, metaData);
+        }
+        
         scrollToBottom();
         const el = document.getElementById("persona-status");
         if (el) el.textContent = "Ready";
+      } else if (event.type === "tool_execute") {
+        // Store tool execution start - attach to most recent assistant message
+        const payload = event.payload as { id: string; toolName: string; args: any; ctx: any };
+        const msgConversationId = payload.ctx?.conversationId || conversationId;
+        
+        setMessages((prev) => {
+          // Find the most recent assistant message for this conversation
+          const lastAssistant = [...prev].reverse().find(m => 
+            m.role === "assistant" && (m.conversationId === msgConversationId || !m.conversationId)
+          );
+          
+          if (lastAssistant) {
+            const meta = metaDataRef.current.get(lastAssistant.id) || {};
+            const toolExecutions = meta.toolExecutions || [];
+            
+            // Add new tool execution
+            const newExecution = {
+              toolName: payload.toolName,
+              args: payload.args,
+              status: "executing" as const,
+              timestamp: new Date().toISOString()
+            };
+            
+            const updatedMeta = {
+              ...meta,
+              toolExecutions: [...toolExecutions, newExecution]
+            };
+            
+            metaDataRef.current.set(lastAssistant.id, updatedMeta);
+            
+            // Update the message in state
+            return prev.map(m => 
+              m.id === lastAssistant.id 
+                ? { ...m, metadata: { ...m.metadata, ...updatedMeta } }
+                : m
+            );
+          }
+          return prev;
+        });
+      } else if (event.type === "tool_executed") {
+        // Store tool execution result
+        const payload = event.payload as { executionId: string; toolName: string; result: any; ctx: any };
+        const msgConversationId = payload.ctx?.conversationId || conversationId;
+        
+        setMessages((prev) => {
+          // Find the most recent assistant message for this conversation
+          const lastAssistant = [...prev].reverse().find(m => 
+            m.role === "assistant" && (m.conversationId === msgConversationId || !m.conversationId)
+          );
+          
+          if (lastAssistant) {
+            const meta = metaDataRef.current.get(lastAssistant.id) || {};
+            const toolExecutions = meta.toolExecutions || [];
+            
+            // Update the tool execution status
+            const updatedExecutions = toolExecutions.map((exec: any) => {
+              if (exec.toolName === payload.toolName && exec.status === "executing") {
+                return {
+                  ...exec,
+                  status: payload.result?.ok ? "completed" : "failed",
+                  result: payload.result,
+                  completedAt: new Date().toISOString()
+                };
+              }
+              return exec;
+            });
+            
+            const updatedMeta = {
+              ...meta,
+              toolExecutions: updatedExecutions
+            };
+            
+            metaDataRef.current.set(lastAssistant.id, updatedMeta);
+            
+            // Update the message in state
+            return prev.map(m => 
+              m.id === lastAssistant.id 
+                ? { ...m, metadata: { ...m.metadata, ...updatedMeta } }
+                : m
+            );
+          }
+          return prev;
+        });
+      } else if (event.type === "job_updated") {
+        // Store job updates - attach to most recent assistant message
+        const payload = event.payload as { jobs: Array<{ id: string; status: string; [key: string]: any }> };
+        
+        setMessages((prev) => {
+          const lastAssistant = [...prev].reverse().find(m => m.role === "assistant");
+          
+          if (lastAssistant && payload.jobs && payload.jobs.length > 0) {
+            const meta = metaDataRef.current.get(lastAssistant.id) || {};
+            const updatedMeta = {
+              ...meta,
+              jobs: payload.jobs
+            };
+            
+            metaDataRef.current.set(lastAssistant.id, updatedMeta);
+            
+            return prev.map(m => 
+              m.id === lastAssistant.id 
+                ? { ...m, metadata: { ...m.metadata, ...updatedMeta } }
+                : m
+            );
+          }
+          return prev;
+        });
       }
     });
 
     return unsubscribe;
-  }, []);
+  }, [conversationId]);
 
   function scrollToBottom() {
     requestAnimationFrame(() => {
@@ -260,7 +421,11 @@ export const ChatView: React.FC = () => {
       id: `local-${Date.now()}`,
       role: "user",
       content: text.trimEnd(), // trimEnd() behält Zeilenumbrüche, entfernt nur trailing spaces
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      conversationId,
+      metadata: {
+        sourceKind: "gui"
+      }
     };
     setMessages((prev) => [...prev, userMessage]);
     scrollToBottom();
@@ -292,6 +457,13 @@ export const ChatView: React.FC = () => {
 
   return (
     <div className="chat">
+      <button
+        type="button"
+        className={`meta-toggle ${showMeta ? "meta-toggle-active" : ""}`}
+        onClick={() => setShowMeta(!showMeta)}
+        title={showMeta ? "Hide meta information" : "Show meta information"}
+        aria-label={showMeta ? "Hide meta information" : "Show meta information"}
+      />
       <div className="message-list" ref={listRef}>
         {messages.map((m) => (
           <div
@@ -300,7 +472,66 @@ export const ChatView: React.FC = () => {
               "message " + (m.role === "user" ? "message-user" : "message-assistant")
             }
           >
-            {m.content}
+            <div className="message-content">{m.content}</div>
+            {showMeta && m.metadata && Object.keys(m.metadata).length > 0 && (
+              <div className="message-meta">
+                {m.metadata.processingDuration && (
+                  <div className="meta-item">
+                    <span className="meta-label">Processing:</span>
+                    <span className="meta-value">{m.metadata.processingDuration}ms</span>
+                  </div>
+                )}
+                {m.metadata.toolExecutions && m.metadata.toolExecutions.length > 0 && (
+                  <div className="meta-item">
+                    <span className="meta-label">Tools:</span>
+                    <div className="meta-tools">
+                      {m.metadata.toolExecutions.map((exec: any, idx: number) => (
+                        <div key={idx} className="meta-tool">
+                          <span className="tool-name">{exec.toolName}</span>
+                          <span className={`tool-status tool-status-${exec.status}`}>
+                            {exec.status}
+                          </span>
+                          {exec.result && (
+                            <div className="tool-result">
+                              {exec.result.ok ? "✓" : "✗"} {exec.result.error || "Success"}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {m.metadata.contextInfo && (
+                  <div className="meta-item">
+                    <span className="meta-label">Context:</span>
+                    <span className="meta-value">
+                      {m.metadata.contextInfo.historyCount || 0} msgs, {m.metadata.contextInfo.memoryCount || 0} memories, ~{m.metadata.contextInfo.estimatedTokens || 0} tokens
+                    </span>
+                  </div>
+                )}
+                {m.metadata.sourceKind && (
+                  <div className="meta-item">
+                    <span className="meta-label">Source:</span>
+                    <span className="meta-value">{m.metadata.sourceKind}</span>
+                  </div>
+                )}
+                {m.metadata.jobs && m.metadata.jobs.length > 0 && (
+                  <div className="meta-item">
+                    <span className="meta-label">Jobs:</span>
+                    <div className="meta-jobs">
+                      {m.metadata.jobs.map((job: any, idx: number) => (
+                        <div key={idx} className="meta-job">
+                          <span className="job-id">{job.id}</span>
+                          <span className={`job-status job-status-${job.status}`}>
+                            {job.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

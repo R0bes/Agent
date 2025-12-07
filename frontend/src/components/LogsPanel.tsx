@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { LogsIcon } from "./Icons";
+import { useAIControllableContext } from "../ai-controllable/AIControllableContext";
 
 interface LogEntry {
   id: string;
@@ -14,12 +15,26 @@ export const LogsPanel: React.FC<{ isOpen: boolean; onClose: () => void; onOpen:
   onClose,
   onOpen
 }) => {
+  const { register, unregister, selectedElementId, setActivatedElementId } = useAIControllableContext();
+  const openButtonRef = useRef<HTMLDivElement>(null);
+  const isSelected = selectedElementId === 'button-logs-open';
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<Set<"info" | "debug" | "warn" | "error">>(
     new Set(["info", "debug", "warn", "error"])
   );
   const listRef = useRef<HTMLDivElement | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Memoize callbacks for AI-controllable registration
+  const onOpenRef = useRef(onOpen);
+  const onCloseRef = useRef(onClose);
+  const isOpenRef = useRef(isOpen);
+  
+  useEffect(() => {
+    onOpenRef.current = onOpen;
+    onCloseRef.current = onClose;
+    isOpenRef.current = isOpen;
+  }, [onOpen, onClose, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -143,28 +158,98 @@ export const LogsPanel: React.FC<{ isOpen: boolean; onClose: () => void; onOpen:
     };
   }, [isOpen, onClose]);
 
+  // Register the button that opens the logs panel as AI-controllable
+  useEffect(() => {
+    const element = {
+      id: 'button-logs-open',
+      type: 'button' as const,
+      label: 'Show Logs',
+      description: 'Open Logs panel from right side',
+      select: () => {
+        // Remove selection from all other elements first
+        document.querySelectorAll('.ai-selected, .ai-selected-icon').forEach(el => {
+          el.classList.remove('ai-selected', 'ai-selected-icon');
+        });
+        
+        // Apply CSS classes to own elements
+        const outlineEl = openButtonRef.current;
+        const iconEl = outlineEl?.querySelector('svg');
+        
+        if (outlineEl) {
+          outlineEl.classList.add('ai-selected');
+        }
+        if (iconEl) {
+          iconEl.classList.add('ai-selected-icon');
+        }
+      },
+      interact: async () => {
+        // Set activated state for visual feedback
+        const outlineEl = openButtonRef.current;
+        const iconEl = outlineEl?.querySelector('svg');
+        
+        if (outlineEl) {
+          outlineEl.classList.add('ai-activated');
+        }
+        if (iconEl) {
+          iconEl.classList.add('ai-activated-icon');
+        }
+        
+        // Remove activated state after animation
+        setTimeout(() => {
+          if (outlineEl) {
+            outlineEl.classList.remove('ai-activated');
+          }
+          if (iconEl) {
+            iconEl.classList.remove('ai-activated-icon');
+          }
+        }, 300);
+        
+        if (!isOpenRef.current) {
+          onOpenRef.current();
+        } else {
+          onCloseRef.current();
+        }
+      },
+      getBounds: () => openButtonRef.current?.getBoundingClientRect() || new DOMRect()
+    };
+    register(element);
+    return () => {
+      unregister('button-logs-open');
+      // Cleanup: Remove CSS classes when unregistering
+      const outlineEl = openButtonRef.current;
+      const iconEl = outlineEl?.querySelector('svg');
+      if (outlineEl) {
+        outlineEl.classList.remove('ai-selected', 'ai-activated');
+      }
+      if (iconEl) {
+        iconEl.classList.remove('ai-selected-icon', 'ai-activated-icon');
+      }
+    };
+  }, [register, unregister]);
+
   return (
     <>
       <div className={`logs-panel ${isOpen ? "logs-panel-open" : ""}`}>
         {/* Morphing Button/Header with integrated filters */}
         <div 
-          className={`logs-panel-morph ${isOpen ? 'logs-panel-morph-expanded' : ''}`}
+          ref={openButtonRef}
+          className={`logs-panel-morph ${isOpen ? 'logs-panel-morph-expanded' : ''} ${isSelected ? 'ai-selected' : ''}`}
+          data-ai-controllable-id="button-logs-open"
+          onClick={(e) => {
+            // Nur ausführen, wenn nicht auf Filter-Buttons geklickt wurde
+            const target = e.target as HTMLElement;
+            if (target.closest('.logs-panel-morph-filters')) {
+              return; // Filter-Buttons haben eigenen Handler
+            }
+            e.stopPropagation();
+            isOpen ? onClose() : onOpen();
+          }}
+          title={isOpen ? "Click to close" : "Show Logs"}
         >
-          {/* Top row: Title and icon */}
-          <button
-            className="logs-panel-morph-header"
-            onClick={(e) => {
-              e.stopPropagation();
-              isOpen ? onClose() : onOpen();
-            }}
-            title={isOpen ? "Click to close" : "Show Logs"}
-          >
-            <div className="logs-panel-morph-content">
-              <LogsIcon />
-              <span className="logs-panel-morph-title">Logs</span>
-              <span className="logs-panel-morph-count">{filteredLogs.length}</span>
-            </div>
-          </button>
+          {/* Icon, Title and Count as separate elements */}
+          <LogsIcon className={isSelected ? 'ai-selected-icon' : ''} data-ai-icon="true" />
+          <span className="logs-panel-morph-title">Logs</span>
+          <span className="logs-panel-morph-count">{filteredLogs.length}</span>
 
           {/* Bottom row: Filters (only visible when expanded) */}
           {isOpen && (

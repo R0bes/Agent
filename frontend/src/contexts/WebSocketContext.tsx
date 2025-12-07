@@ -25,10 +25,9 @@ const SOCKET_URL = import.meta.env.DEV
 export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [status, setStatus] = useState<WebSocketStatus>("disconnected");
   const [socket, setSocket] = useState<Socket | null>(null);
+  const isConnectedRef = React.useRef(false);
 
   useEffect(() => {
-    console.log("[SOCKET-INIT] Initializing Socket.IO connection to", SOCKET_URL);
-    
     const socketInstance = io(SOCKET_URL, {
       reconnection: true,
       reconnectionDelay: 1000,
@@ -38,52 +37,57 @@ export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
 
     socketInstance.on("connect", () => {
-      console.log("[SOCKET-CONNECT] Connected successfully, ID:", socketInstance.id);
+      console.info("WebSocket: connected");
       setStatus("connected");
+      isConnectedRef.current = true;
     });
 
     socketInstance.on("disconnect", (reason) => {
-      console.log("[SOCKET-DISCONNECT] Disconnected:", reason);
+      isConnectedRef.current = false;
+      if (reason !== "io client disconnect") {
+        console.warn("WebSocket: disconnected", reason);
+      }
       setStatus("disconnected");
     });
 
     socketInstance.on("connect_error", (error) => {
-      console.error("[SOCKET-ERROR] Connection error:", error);
+      // Only log if not already connected (to avoid spam during reconnection)
+      if (!isConnectedRef.current) {
+        console.warn("WebSocket: connection error", error.message);
+      }
       setStatus("disconnected");
     });
 
-    socketInstance.on("connection_established", (data) => {
-      console.log("[SOCKET-MESSAGE] Connection established:", data);
-    });
-
     // Listen to all event types from backend
-    ["message_created", "job_updated", "memory_updated", "gui_action", "avatar_command"].forEach(eventType => {
+    ["message_created", "job_updated", "memory_updated", "gui_action", "avatar_command", "tool_execute", "tool_executed"].forEach(eventType => {
       socketInstance.on(eventType, (data) => {
-        console.log(`[SOCKET-MESSAGE] ${eventType} received:`, data);
         // data is already the full event object { type, payload } from backend
-        emit(data);
+        if (data && typeof data === 'object') {
+          // If data already has type and payload, use it directly
+          if (data.type && data.payload) {
+            emit(data);
+          } else {
+            // Otherwise, wrap it in the event format
+            emit({ type: eventType, payload: data });
+          }
+        }
       });
     });
 
     setSocket(socketInstance);
 
     return () => {
-      console.log("[SOCKET-CLEANUP] Closing connection");
       socketInstance.close();
     };
   }, []);
 
   const sendToBackend = useCallback((event: { type: string; payload: any }) => {
     if (socket && socket.connected) {
-      console.log("[SOCKET-SEND] Sending event:", event.type);
       socket.emit(event.type, event.payload);
-    } else {
-      console.warn("[SOCKET-SEND] Not connected, cannot send:", event);
     }
   }, [socket]);
 
   const reconnect = useCallback(() => {
-    console.log("[SOCKET-RECONNECT] Manually reconnecting...");
     if (socket) {
       socket.connect();
     }

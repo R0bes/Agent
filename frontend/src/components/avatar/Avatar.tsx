@@ -4,6 +4,7 @@ import { useAvatarController } from './AvatarController';
 import { registerAllCapabilities } from './registerCapabilities';
 import type { AvatarStatus, AvatarPosition } from './types';
 import { AVATAR_MIN_SIZE, AVATAR_MAX_SIZE, AVATAR_BASE_SIZE } from './types';
+import { MIMIKRI_EVENT } from '../../capabilities/expressions/MimikriCapability';
 
 // Register all capabilities on module load
 registerAllCapabilities();
@@ -44,20 +45,27 @@ export const Avatar: React.FC<AvatarProps> = ({
     return Math.max(AVATAR_MIN_SIZE, Math.min(AVATAR_MAX_SIZE, targetSize));
   });
   const [isDragging, setIsDragging] = useState(false);
+  const [mimikriIcon, setMimikriIcon] = useState<string | null>(null);
+  const [mimikriWall, setMimikriWall] = useState<'left' | 'right' | 'top' | 'bottom' | null>(null);
 
   // Refs für Drag
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const hasDraggedRef = useRef(false);
+
+  // Callback for capabilities to move avatar
+  // WICHTIG: Keine Boundary-Checks hier, da Capabilities explizite Positionen setzen können
+  const moveAvatar = useCallback((pos: AvatarPosition) => {
+    console.log('[Avatar] moveAvatar called with position:', pos, 'currentSize:', currentSize);
+    setCurrentPosition(pos);
+    onPositionChange?.(pos);
+  }, [onPositionChange, currentSize]);
 
   // Controller Hook
   useAvatarController({
     status,
     position: currentPosition,
     size: currentSize,
-    onPositionChange: (pos) => {
-      setCurrentPosition(pos);
-      onPositionChange?.(pos);
-    },
+    onPositionChange: moveAvatar,
     onSizeChange: (newSize) => {
       // Clamp size to valid range
       const clampedSize = Math.max(AVATAR_MIN_SIZE, Math.min(AVATAR_MAX_SIZE, newSize));
@@ -66,19 +74,21 @@ export const Avatar: React.FC<AvatarProps> = ({
     },
     onCapabilityExecute: (capabilityId) => {
       console.log('[Avatar] Capability executed:', capabilityId);
-    }
+    },
+    moveAvatar: moveAvatar
   });
 
   // Sync mit externen Props - nur wenn nicht am Draggen
+  // WICHTIG: currentPosition nicht in Dependencies, um Loop zu vermeiden
   useEffect(() => {
     if (!isDragging && targetPosition) {
-      const posChanged = Math.abs(targetPosition.x - currentPosition.x) > 1 ||
-                         Math.abs(targetPosition.y - currentPosition.y) > 1;
-      if (posChanged) {
-        setCurrentPosition(targetPosition);
-      }
+      setCurrentPosition(prevPos => {
+        const posChanged = Math.abs(targetPosition.x - prevPos.x) > 1 ||
+                           Math.abs(targetPosition.y - prevPos.y) > 1;
+        return posChanged ? targetPosition : prevPos;
+      });
     }
-  }, [targetPosition, isDragging]); // currentPosition aus Dependencies entfernt, um Loop zu vermeiden
+  }, [targetPosition, isDragging]); // currentPosition entfernt, um Loop zu vermeiden
 
   useEffect(() => {
     if (!isDragging && targetSize !== undefined) {
@@ -101,6 +111,11 @@ export const Avatar: React.FC<AvatarProps> = ({
   // Drag Handler - WICHTIG: Position ist das Zentrum
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return; // Nur linke Maustaste
+    
+    // Drag & Drop während Mimikri deaktivieren
+    if (mimikriIcon !== null || mimikriWall !== null) {
+      return; // Mimikri ist aktiv, kein Drag & Drop
+    }
     
     e.preventDefault();
     e.stopPropagation();
@@ -179,12 +194,31 @@ export const Avatar: React.FC<AvatarProps> = ({
     }
   }, [onContextMenu]);
 
+  // Listen for mimikri icon changes
+  useEffect(() => {
+    const handleMimikriEvent = (e: CustomEvent<{ 
+      svgContent: string | null;
+      wall?: 'left' | 'right' | 'top' | 'bottom' | null;
+      buttonSize?: number | null;
+    }>) => {
+      setMimikriIcon(e.detail.svgContent);
+      setMimikriWall(e.detail.wall || null);
+    };
+
+    window.addEventListener(MIMIKRI_EVENT, handleMimikriEvent as EventListener);
+    return () => {
+      window.removeEventListener(MIMIKRI_EVENT, handleMimikriEvent as EventListener);
+    };
+  }, []);
+
   return (
     <AvatarPresentation
       position={currentPosition}
       size={currentSize}
       status={status}
       isDragging={isDragging}
+      mimikriIcon={mimikriIcon}
+      mimikriWall={mimikriWall}
       onMouseDown={handleMouseDown}
       onContextMenu={handleContextMenu}
       onWheel={handleWheel}

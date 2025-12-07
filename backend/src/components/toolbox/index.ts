@@ -13,8 +13,8 @@ import { SystemToolSet } from "./systemToolSet";
 import { InternalToolSet } from "./internalToolSet";
 import { ExternalToolSet, type ExternalToolSetConfig } from "./externalToolSet";
 import { ToolboxToolSet } from "./toolboxToolSet";
-import { SchedulerToolSet } from "./schedulerToolSet";
-import { WorkerManagerToolSet } from "./workerManagerToolSet";
+// SchedulerToolSet removed - replaced by SchedulerService
+// WorkerManagerToolSet wird als Singleton importiert
 import { AvatarToolSet } from "./avatarToolSet";
 import { MemoryToolSet } from "./memoryToolSet";
 import type { ToolSet, ToolDescriptor, HealthStatus } from "./toolSet";
@@ -54,13 +54,9 @@ class ToolboxService extends AbstractService {
     const memoryToolSet = new MemoryToolSet();
     this.toolSets.set(memoryToolSet.id, memoryToolSet);
     
-    // Registriere SchedulerToolSet (SystemToolSet)
-    const schedulerToolSet = new SchedulerToolSet();
-    this.toolSets.set(schedulerToolSet.id, schedulerToolSet);
+    // SchedulerToolSet removed - replaced by SchedulerService
     
-    // Registriere WorkerManagerToolSet (SystemToolSet)
-    const workerManagerToolSet = new WorkerManagerToolSet();
-    this.toolSets.set(workerManagerToolSet.id, workerManagerToolSet);
+    // WorkerManagerToolSet wird in onInitialize() registriert (async import)
   }
 
   protected async onInitialize(): Promise<void> {
@@ -69,6 +65,18 @@ class ToolboxService extends AbstractService {
       logDebug("Toolbox: Store initialized");
     } catch (err) {
       logError("Toolbox: Failed to initialize store", err);
+      throw err;
+    }
+    
+    try {
+      // Registriere WorkerManagerToolSet (SystemToolSet)
+      // Nutze Singleton-Instanz (async import)
+      const { getWorkerManagerToolSet } = await import("./workerManagerToolSet");
+      const workerManagerToolSet = getWorkerManagerToolSet();
+      this.toolSets.set(workerManagerToolSet.id, workerManagerToolSet);
+      logDebug("Toolbox: WorkerManagerToolSet registered");
+    } catch (err) {
+      logError("Toolbox: Failed to register WorkerManagerToolSet", err);
       throw err;
     }
     

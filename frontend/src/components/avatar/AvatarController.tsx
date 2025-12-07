@@ -12,6 +12,7 @@ interface AvatarControllerProps {
   onSizeChange: (size: number) => void;
   onPositionChange: (position: AvatarPosition) => void;
   onCapabilityExecute?: (capabilityId: string) => void;
+  moveAvatar?: (position: AvatarPosition) => void; // Für Capabilities
 }
 
 export const useAvatarController = ({
@@ -20,7 +21,8 @@ export const useAvatarController = ({
   position,
   onSizeChange,
   onPositionChange,
-  onCapabilityExecute
+  onCapabilityExecute,
+  moveAvatar
 }: AvatarControllerProps) => {
   const { sendToBackend } = useWebSocket();
   const stateUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -61,6 +63,7 @@ export const useAvatarController = ({
         switch (command.command) {
           case 'move':
             if (command.target) {
+              console.log('[AvatarController] Moving avatar to:', command.target);
               onPositionChange(command.target);
             }
             break;
@@ -85,7 +88,8 @@ export const useAvatarController = ({
                 position,
                 size,
                 sendToBackend,
-                setSize: onSizeChange
+                setSize: onSizeChange,
+                moveAvatar: moveAvatar || onPositionChange
               };
               avatarCapabilities.execute(command.capabilityId, context)
                 .then(() => {

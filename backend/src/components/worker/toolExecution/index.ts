@@ -32,20 +32,23 @@ class ToolExecutionWorker extends AbstractWorker {
    * Verarbeite Tool-Execution-Job
    */
   protected async run(args: any, ctx: ToolContext): Promise<void> {
-    const { executionId, toolName, toolArgs, retry } = args;
+    const { executionId, toolName, toolArgs, eventTopic, retry } = args;
 
     logDebug("ToolExecutionWorker: Processing job", {
       executionId,
       toolName,
+      eventTopic,
       userId: ctx.userId,
       conversationId: ctx.conversationId
     });
 
+    let result: any;
+
     try {
       // Führe Tool über Toolbox aus
-      const result = await toolboxService.executeTool(toolName, toolArgs, ctx);
+      result = await toolboxService.executeTool(toolName, toolArgs, ctx);
 
-      // Emittiere tool_executed Event
+      // Emittiere tool_executed Event (standard für alle Tool-Ausführungen)
       await eventBus.emit({
         type: "tool_executed",
         payload: {
@@ -55,6 +58,24 @@ class ToolExecutionWorker extends AbstractWorker {
           ctx
         }
       });
+
+      // Wenn eventTopic vorhanden (z.B. von Scheduled Task), emittiere zusätzliches Event
+      if (eventTopic) {
+        await eventBus.emit({
+          type: eventTopic,
+          payload: {
+            taskId: executionId,
+            toolName,
+            result,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        logDebug("ToolExecutionWorker: Result also emitted to custom event topic", {
+          executionId,
+          eventTopic
+        });
+      }
 
       logInfo("ToolExecutionWorker: Tool execution completed", {
         executionId,
@@ -72,19 +93,35 @@ class ToolExecutionWorker extends AbstractWorker {
         toolName
       });
 
+      // Erstelle Fehler-Result
+      result = {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err)
+      };
+
       // Emittiere tool_executed Event auch bei Fehler
       await eventBus.emit({
         type: "tool_executed",
         payload: {
           executionId,
           toolName,
-          result: {
-            ok: false,
-            error: err instanceof Error ? err.message : String(err)
-          },
+          result,
           ctx
         }
       });
+
+      // Wenn eventTopic vorhanden, emittiere auch dort (mit Fehler)
+      if (eventTopic) {
+        await eventBus.emit({
+          type: eventTopic,
+          payload: {
+            taskId: executionId,
+            toolName,
+            result,
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
 
       // Werfe Exception für Retry-Mechanismus
       throw err;

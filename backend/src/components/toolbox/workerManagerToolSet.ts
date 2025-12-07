@@ -170,6 +170,65 @@ export class WorkerManagerToolSet extends SystemToolSet {
   }
 
   /**
+   * Enqueue a scheduled task for execution
+   * Called by Scheduler Service to execute scheduled tasks
+   */
+  async enqueueScheduledTask(
+    taskId: string,
+    toolName: string,
+    toolArgs: any,
+    eventTopic: string,
+    userId: string,
+    conversationId: string
+  ): Promise<void> {
+    logDebug("WorkerManagerToolSet: Enqueuing scheduled task", {
+      taskId,
+      toolName,
+      eventTopic,
+      userId
+    });
+
+    try {
+      const executionId = `exec-${taskId}-${Date.now()}`;
+      
+      // Enqueue job for tool-execution worker
+      await bullMQWorkerEngine.enqueue(
+        "tool-execution",
+        {
+          executionId,
+          toolName,
+          toolArgs,
+          eventTopic // Pass eventTopic to worker
+        },
+        {
+          userId,
+          conversationId,
+          source: {
+            kind: "scheduler",
+            id: taskId
+          }
+        },
+        {
+          priority: 0,
+          retry: 3
+        }
+      );
+
+      logInfo("WorkerManagerToolSet: Scheduled task enqueued", {
+        taskId,
+        toolName,
+        executionId
+      });
+    } catch (err) {
+      logError("WorkerManagerToolSet: Failed to enqueue scheduled task", err, {
+        taskId,
+        toolName
+      });
+      throw err;
+    }
+  }
+
+  /**
    * Health Check
    */
   async checkHealth(): Promise<HealthStatus> {
@@ -180,4 +239,18 @@ export class WorkerManagerToolSet extends SystemToolSet {
     };
   }
 }
+
+// Export singleton instance for direct access from Scheduler Service
+// Wird lazy initialisiert, um Zirkelabhängigkeiten zu vermeiden
+let _workerManagerToolSetInstance: WorkerManagerToolSet | null = null;
+
+export function getWorkerManagerToolSet(): WorkerManagerToolSet {
+  if (!_workerManagerToolSetInstance) {
+    _workerManagerToolSetInstance = new WorkerManagerToolSet();
+  }
+  return _workerManagerToolSetInstance;
+}
+
+// Export für direkten Zugriff (wird lazy initialisiert)
+export const workerManagerToolSet = getWorkerManagerToolSet();
 

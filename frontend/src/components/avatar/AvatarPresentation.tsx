@@ -7,6 +7,8 @@ interface AvatarPresentationProps {
   size: number;  // 0.25 - 1.75 (direkt)
   status: AvatarStatus;
   isDragging?: boolean;
+  mimikriIcon?: string | null;  // SVG content as string
+  mimikriWall?: 'left' | 'right' | 'top' | 'bottom' | null;  // Wand für border-radius Anpassung
   onMouseDown?: (e: React.MouseEvent) => void;
   onClick?: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
@@ -18,6 +20,8 @@ export const AvatarPresentation: React.FC<AvatarPresentationProps> = ({
   size,
   status,
   isDragging = false,
+  mimikriIcon = null,
+  mimikriWall = null,
   onMouseDown,
   onClick,
   onContextMenu,
@@ -32,6 +36,8 @@ export const AvatarPresentation: React.FC<AvatarPresentationProps> = ({
   // CSS-Klassen
   const statusClass = `persona-avatar-${status}`;
   const draggingClass = isDragging ? 'avatar-dragging' : '';
+  // Mimikri-Klasse für border-radius Anpassung (wird über CSS gehandhabt)
+  const mimikriClass = mimikriWall ? `avatar-mimikri-${mimikriWall}` : '';
 
   // Mausrad-Handler für Skalierung - direkt auf dem Element
   const handleWheelEvent = useCallback((e: React.WheelEvent) => {
@@ -40,10 +46,10 @@ export const AvatarPresentation: React.FC<AvatarPresentationProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    // Delta: positiv = nach oben (vergrößern), negativ = nach unten (verkleinern)
-    // Schrittweite: 1% der Range (0.25-1.75 = 1.5 Range, also 0.015 pro Schritt)
-    const stepSize = 0.015; // 1% der Range
-    const delta = e.deltaY > 0 ? -stepSize : stepSize;
+      // Delta: positiv = nach oben (vergrößern), negativ = nach unten (verkleinern)
+      // Schrittweite: 2% der Range (0.25-1.75 = 1.5 Range, also 0.03 pro Schritt)
+      const stepSize = 0.03; // 2% der Range
+      const delta = e.deltaY > 0 ? -stepSize : stepSize;
     
     onWheel(delta);
   }, [onWheel]);
@@ -70,7 +76,7 @@ export const AvatarPresentation: React.FC<AvatarPresentationProps> = ({
       e.stopPropagation();
       
       // Delta: positiv = nach oben (vergrößern), negativ = nach unten (verkleinern)
-      const stepSize = 0.015; // 1% der Range
+      const stepSize = 0.03; // 2% der Range
       const delta = e.deltaY > 0 ? -stepSize : stepSize;
       
       onWheel(delta);
@@ -85,29 +91,31 @@ export const AvatarPresentation: React.FC<AvatarPresentationProps> = ({
   return (
     <div
       ref={avatarRef}
-      className={`persona-avatar ${statusClass} ${draggingClass}`}
+      className={`persona-avatar ${statusClass} ${draggingClass} ${mimikriClass}`}
       style={{
         position: 'fixed',  // Immer fixed, unabhängig von Größe
         // Position ist das ZENTRUM - transform sorgt für korrekte Ausrichtung
         left: `${position.x}px`,
         top: `${position.y}px`,
-        width: `${pixelSize}px`,
-        height: `${pixelSize}px`,
+        // Basis-Größe verwenden, Skalierung erfolgt über scale()
+        width: `${AVATAR_BASE_SIZE}px`,
+        height: `${AVATAR_BASE_SIZE}px`,
         // translate(-50%, -50%) sorgt dafür, dass left/top das Zentrum ist
+        // scale() für Skalierung, damit es vom Zentrum aus erfolgt
         transform: isDragging 
-          ? 'translate(-50%, -50%) scale(1.1)'  // Während Drag: leicht vergrößern
-          : 'translate(-50%, -50%)',             // Normal: Zentrierung
+          ? `translate(-50%, -50%) scale(${size * 1.1})`  // Während Drag: leicht vergrößern
+          : `translate(-50%, -50%) scale(${size})`,  // Skalierung vom Zentrum
         transformOrigin: 'center center',  // Zentrum bleibt konstant
         transition: isDragging 
           ? 'none'  // Keine Transition während Drag
-          : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
-            'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
-            'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
-            'top 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.6s cubic-bezier(0.4, 0, 0.2, 1), top 0.6s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
         zIndex: 10000,  // Immer gleicher zIndex
         cursor: isDragging ? 'grabbing' : 'grab',  // Immer grab/grabbing
         userSelect: 'none',
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -115,6 +123,24 @@ export const AvatarPresentation: React.FC<AvatarPresentationProps> = ({
       onWheel={handleWheelEvent}  // Mausrad für Skalierung
       onContextMenu={onContextMenu}
       title={`Status: ${status} | Size: ${(size * 100).toFixed(0)}% (${pixelSize.toFixed(0)}px)`}
-    />
+    >
+      {mimikriIcon && (
+        <div
+          className="avatar-mimikri-icon"
+          dangerouslySetInnerHTML={{ __html: mimikriIcon }}
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            opacity: 0.9,
+            transition: 'opacity 0.3s ease',
+            color: 'var(--ai-primary)' // Avatar-Farbe
+          }}
+        />
+      )}
+    </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ChatView } from "./components/ChatView";
 import { MemoryPanel } from "./components/MemoryPanel";
 import { PreferencesCard } from "./components/PreferencesCard";
@@ -10,18 +10,21 @@ import { LogsPanel } from "./components/LogsPanel";
 import { IconButton } from "./components/IconButton";
 import { WorkersIcon, MemoryIcon, PreferencesIcon, ToolboxIcon, LogsIcon, ConversationIcon, ClockIcon } from "./components/Icons";
 import { useWebSocket } from "./contexts/WebSocketContext";
-import { Avatar, type AvatarEmotion, type AvatarPresentationMode } from "./components/avatar/Avatar";
-import { AvatarContextMenu } from "./components/AvatarContextMenu";
+import { Avatar, type AvatarStatus } from "./components/avatar/Avatar";
+import { AVATAR_MIN_SIZE, AVATAR_MAX_SIZE } from "./components/avatar/types";
+import { AvatarContextMenu, type MenuItem } from "./components/AvatarContextMenu";
 import { subscribe } from "./eventBus";
 import { saveAvatarState, loadAvatarState, type AvatarState } from "./utils/avatarStorage";
-import { AIControllableProvider } from "./ai-controllable/AIControllableContext";
+import { AIControllableProvider, useAIControllableContext } from "./ai-controllable/AIControllableContext";
 import { AISelectionOverlay } from "./ai-controllable/AISelectionOverlay";
 import { avatarCapabilities } from "./components/avatar/AvatarCapabilities";
 import type { AvatarContext } from "./components/avatar/types";
 
 type ActivePanel = "preferences" | "conversation" | null;
 
-export const App: React.FC = () => {
+// Inner component that can access AIControllableContext
+const AppContent: React.FC = () => {
+  const { getAllElements, selectedElementId, setSelectedElementId } = useAIControllableContext();
   const [logsOpen, setLogsOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
@@ -33,24 +36,25 @@ export const App: React.FC = () => {
   // Load avatar state from localStorage on mount
   const [avatarPosition, setAvatarPosition] = useState<{ x: number; y: number } | undefined>(() => {
     const saved = loadAvatarState();
-    return saved ? saved.position : { x: 24, y: window.innerHeight / 2 }; // Sidebar center (48px / 2 = 24px)
+    // Default: Etwas weiter weg von der Ecke (Zentrum)
+    return saved ? saved.position : { x: 80, y: 80 };
   });
-  const [avatarEmotion, setAvatarEmotion] = useState<AvatarEmotion>(null);
-  const [avatarMode, setAvatarMode] = useState<AvatarPresentationMode>(() => {
+  const [avatarSize, setAvatarSize] = useState<number>(() => {
     const saved = loadAvatarState();
-    return saved?.minimized ? 'small' : 'large';
+    // Default: 1.0 (100%)
+    return saved?.size ? Math.max(AVATAR_MIN_SIZE, Math.min(AVATAR_MAX_SIZE, saved.size)) : 1.0;
   });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
-  // Save avatar state to localStorage only for mode (not position)
+  // Save avatar state to localStorage
   useEffect(() => {
     if (avatarPosition) {
       saveAvatarState({
         position: avatarPosition,
-        minimized: avatarMode === 'small'
+        size: avatarSize
       });
     }
-  }, [avatarMode, avatarPosition]); // Save when mode changes
+  }, [avatarSize, avatarPosition]);
 
   // Convert absolute position to relative (0-1)
   const getRelativePosition = (pos: { x: number; y: number }): { x: number; y: number } => {
@@ -66,36 +70,6 @@ export const App: React.FC = () => {
     setAvatarPosition(position);
   };
 
-  // Handle avatar click (single click)
-  const handleAvatarClick = () => {
-    // Single click: only handle if not in small mode
-    if (avatarMode === 'small') {
-      return; // Do nothing on single click when in small mode
-    }
-    
-    if (status === "disconnected") {
-      // Trigger reconnection
-      if (reconnect) {
-        reconnect();
-      }
-    } else if (status === "connected") {
-      // Send poke event to AI
-      sendToBackend({
-        type: "avatar_poke",
-        payload: {
-          timestamp: new Date().toISOString(),
-          position: avatarPosition ? getRelativePosition(avatarPosition) : null
-        }
-      });
-    }
-  };
-
-  // Handle avatar double click (toggle mode)
-  const handleAvatarDoubleClick = () => {
-    setAvatarMode((prev) => prev === 'small' ? 'large' : 'small');
-    // State will be saved automatically via useEffect
-  };
-
   // Handle avatar context menu (right click)
   const handleAvatarContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -104,14 +78,9 @@ export const App: React.FC = () => {
 
   // Context menu actions - dynamically build from capabilities
   const contextMenuItems = React.useMemo(() => {
-    const items: Array<{ label: string; action: () => void; disabled?: boolean }> = [];
+    const items: MenuItem[] = []; // Explicitly type as MenuItem[]
 
     // Basic actions
-    items.push({
-      label: avatarMode === 'small' ? "Restore Avatar" : "Minimize to LED",
-      action: () => setAvatarMode(avatarMode === 'small' ? 'large' : 'small')
-    });
-
     items.push({
       label: status === "connected" ? "Poke AI" : "Reconnect",
       action: () => {
@@ -129,8 +98,37 @@ export const App: React.FC = () => {
       }
     });
 
-    // Add hotkey for mode toggle
-    items[0].label = `${items[0].label} (a+1)`;
+    // Separator (visual)
+    items.push({
+      label: "---",
+      action: () => {},
+      disabled: true
+    });
+
+    // Avatar Capabilities
+    const mimikriCapability = avatarCapabilities.get('mimikri');
+    if (mimikriCapability) {
+      items.push({
+        label: mimikriCapability.hotkey 
+          ? `${mimikriCapability.name} (${mimikriCapability.hotkey})`
+          : mimikriCapability.name,
+        action: async () => {
+          const context: AvatarContext = {
+            status,
+            position: avatarPosition || { x: 80, y: 80 },
+            size: avatarSize,
+            sendToBackend,
+            setSize: setAvatarSize,
+            moveAvatar: setAvatarPosition // Verwende setAvatarPosition direkt als moveAvatar
+          };
+          try {
+            await mimikriCapability.execute(context);
+          } catch (err) {
+            console.error('[App] Failed to execute mimikri capability:', err);
+          }
+        }
+      });
+    }
 
     // Separator (visual)
     items.push({
@@ -139,95 +137,29 @@ export const App: React.FC = () => {
       disabled: true
     });
 
-    // Expression capabilities
-    const expressions = avatarCapabilities.getByCategory('expression');
-    if (expressions.length > 0) {
+    // AI-Controllable Elements (Submenu)
+    const aiElements = getAllElements();
+    if (aiElements.length > 0) {
       items.push({
-        label: "Expressions",
+        label: "AI-Controllable Elements",
         action: () => {},
         disabled: true
       });
-      expressions.forEach(cap => {
-        const hotkeyText = cap.hotkey ? ` (${cap.hotkey})` : '';
+      aiElements.forEach(element => {
+        const isSelected = selectedElementId === element.id;
         items.push({
-          label: `${cap.name}${hotkeyText}`,
-          action: async () => {
-            const context: AvatarContext = {
-              status,
-              position: avatarPosition || { x: 0, y: 0 },
-              mode: avatarMode,
-              sendToBackend,
-              setEmotion: setAvatarEmotion,
-              setMode: setAvatarMode
-            };
-            try {
-              await avatarCapabilities.execute(cap.id, context);
-            } catch (err) {
-              console.error(`[AvatarMenu] Failed to execute capability ${cap.id}:`, err);
+          label: element.label || element.id,
+          action: () => {
+            // Toggle selection only, do not interact
+            if (isSelected) {
+              setSelectedElementId(null);
+            } else {
+              setSelectedElementId(element.id);
             }
           }
         });
       });
     }
-
-    // Action capabilities
-    const actions = avatarCapabilities.getByCategory('action');
-    if (actions.length > 0) {
-      items.push({
-        label: "---",
-        action: () => {},
-        disabled: true
-      });
-      items.push({
-        label: "Actions",
-        action: () => {},
-        disabled: true
-      });
-      actions.forEach(cap => {
-        const hotkeyText = cap.hotkey ? ` (${cap.hotkey})` : '';
-        items.push({
-          label: `${cap.name}${hotkeyText}`,
-          action: async () => {
-            const context: AvatarContext = {
-              status,
-              position: avatarPosition || { x: 0, y: 0 },
-              mode: avatarMode,
-              sendToBackend,
-              setEmotion: setAvatarEmotion,
-              setMode: setAvatarMode
-            };
-            try {
-              await avatarCapabilities.execute(cap.id, context);
-            } catch (err) {
-              console.error(`[AvatarMenu] Failed to execute capability ${cap.id}:`, err);
-            }
-          }
-        });
-      });
-    }
-
-    // Separator
-    items.push({
-      label: "---",
-      action: () => {},
-      disabled: true
-    });
-
-    // Emotions (legacy, could be moved to expressions later)
-    items.push({
-      label: "Show Emotion: Happy",
-      action: () => {
-        setAvatarEmotion("happy");
-        setTimeout(() => setAvatarEmotion(null), 2000);
-      }
-    });
-    items.push({
-      label: "Show Emotion: Thinking",
-      action: () => {
-        setAvatarEmotion("thinking");
-        setTimeout(() => setAvatarEmotion(null), 2000);
-      }
-    });
 
     // Utility actions
     items.push({
@@ -238,12 +170,12 @@ export const App: React.FC = () => {
     items.push({
       label: "Reset Position",
       action: () => {
-        setAvatarPosition({ x: 24, y: window.innerHeight / 2 }); // Sidebar center
+        setAvatarPosition({ x: 80, y: 80 });
       }
     });
 
     return items;
-  }, [avatarMode, status, avatarPosition, reconnect, sendToBackend, setAvatarEmotion, setAvatarMode, setAvatarPosition]);
+  }, [status, avatarPosition, avatarSize, reconnect, sendToBackend, setAvatarPosition, setAvatarSize, getAllElements, selectedElementId, setSelectedElementId]);
 
   const handlePanelToggle = (panel: ActivePanel) => {
     setActivePanel(activePanel === panel ? null : panel);
@@ -281,9 +213,6 @@ export const App: React.FC = () => {
                   y: rect.top + rect.height / 2
                 };
                 setAvatarPosition(newPosition);
-                if (args.emotion) {
-                  setAvatarEmotion(args.emotion);
-                }
                 
                 // After animation, open panel if specified
                 if (args.panel) {
@@ -298,9 +227,6 @@ export const App: React.FC = () => {
             } else if (args.position) {
               // Move to absolute position
               setAvatarPosition(args.position);
-              if (args.emotion) {
-                setAvatarEmotion(args.emotion);
-              }
               sendResponse({ position: args.position });
             } else {
               sendResponse(null, "Missing targetSelector or position");
@@ -309,16 +235,8 @@ export const App: React.FC = () => {
           }
 
           case "show_emotion": {
-            if (args.emotion) {
-              setAvatarEmotion(args.emotion);
-              // Reset emotion after animation duration
-              setTimeout(() => {
-                setAvatarEmotion(null);
-              }, args.duration || 2000);
-              sendResponse({ emotion: args.emotion });
-            } else {
-              sendResponse(null, "Missing emotion parameter");
-            }
+            // Emotion handling removed (not used in new architecture)
+            sendResponse({ note: "Emotions removed, use capabilities instead" });
             break;
           }
 
@@ -421,7 +339,7 @@ export const App: React.FC = () => {
               sendResponse({
                 absolute: avatarPosition,
                 relative: relative,
-                mode: avatarMode,
+                size: avatarSize,
                 viewport: {
                   width: window.innerWidth,
                   height: window.innerHeight
@@ -433,18 +351,6 @@ export const App: React.FC = () => {
             break;
           }
 
-          case "minimize_to_status_led": {
-            setAvatarMode('small');
-            sendResponse({ mode: 'small' });
-            break;
-          }
-
-          case "restore_from_status_led": {
-            setAvatarMode('large');
-            sendResponse({ mode: 'large' });
-            break;
-          }
-
           default:
             sendResponse(null, `Unknown action: ${action}`);
         }
@@ -452,7 +358,7 @@ export const App: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [logsOpen, memoryOpen, activePanel, schedulerOpen, toolboxOpen, workersOpen, sendToBackend]);
+  }, [logsOpen, memoryOpen, activePanel, schedulerOpen, toolboxOpen, workersOpen, sendToBackend, avatarPosition, avatarSize]);
 
   const handlePanelAction = (panel: string, open: boolean) => {
     switch (panel) {
@@ -478,172 +384,10 @@ export const App: React.FC = () => {
       case "conversation":
         setActivePanel(open ? "conversation" : null);
         break;
+      default:
+        console.warn(`Unknown panel action for: ${panel}`);
     }
   };
-
-  // Function to find button position by title and trigger avatar animation
-  const triggerAvatarButtonPress = (buttonTitle: string, action: () => void) => {
-    // Ensure avatar is not in small mode
-    if (avatarMode === 'small') {
-      setAvatarMode('large');
-      // Wait for avatar to restore before moving
-      setTimeout(() => {
-        triggerAvatarButtonPress(buttonTitle, action);
-      }, 400);
-      return;
-    }
-    
-    // Find button by title attribute
-    const buttons = document.querySelectorAll('.icon-btn');
-    let targetButton: HTMLElement | null = null;
-    
-    buttons.forEach(btn => {
-      if (btn.getAttribute('title') === buttonTitle) {
-        targetButton = btn as HTMLElement;
-      }
-    });
-    
-    if (!targetButton) {
-      console.log('[App] Button not found for title:', buttonTitle);
-      // Fallback: execute action directly if button not found
-      action();
-      return;
-    }
-    
-    // Get sidebar to check if it's expanded
-    const sidebar = document.querySelector('.sidebar');
-    const sidebarRect = sidebar?.getBoundingClientRect();
-    const sidebarComputedStyle = sidebar ? window.getComputedStyle(sidebar) : null;
-    const sidebarTransform = sidebarComputedStyle?.transform;
-    const isSidebarExpanded = sidebarTransform === 'none' || sidebarTransform?.includes('translateX(0)');
-    
-    // Get button position (getBoundingClientRect gives absolute viewport position)
-    const rect = targetButton.getBoundingClientRect();
-    
-    // Calculate button center position
-    // If sidebar is collapsed, buttons are at left: -38px (hidden), so we need to calculate where they would be when expanded
-    let buttonCenter: { x: number; y: number };
-    
-    if (isSidebarExpanded && sidebarRect) {
-      // Sidebar is expanded, use actual button position
-      buttonCenter = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-      };
-    } else if (sidebarRect) {
-      // Sidebar is collapsed, calculate where button would be when expanded
-      // Sidebar center is at left: 24px (48px / 2) when expanded
-      buttonCenter = {
-        x: 24, // Center of sidebar (48px / 2)
-        y: rect.top + rect.height / 2 // Use actual Y position from DOM
-      };
-    } else {
-      // Fallback
-      buttonCenter = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-      };
-    }
-    
-    console.log('[App] Moving avatar to button:', buttonTitle, {
-      buttonRect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-      sidebarExpanded: isSidebarExpanded,
-      buttonCenter,
-      currentAvatarPos: avatarPosition
-    });
-    
-    // Move avatar to button position
-    setAvatarPosition(buttonCenter);
-    setAvatarEmotion("attentive");
-    
-    // After avatar reaches button, show press animation and execute action
-    setTimeout(() => {
-      setAvatarEmotion("excited"); // Press animation
-      setTimeout(() => {
-        action(); // Execute the action
-        // Return avatar to original position after a short delay
-        setTimeout(() => {
-          setAvatarEmotion(null);
-          // Optionally return to previous position or keep at button
-        }, 300);
-      }, 200); // Press duration
-    }, 600); // Time for avatar to reach button
-  };
-
-  // Track if arrow keys are being used (to prevent useEffect from interfering)
-  const [isArrowKeyControl, setIsArrowKeyControl] = useState(false);
-  const arrowKeyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Arrow key control for avatar
-  useEffect(() => {
-    const handleArrowKeys = (e: KeyboardEvent) => {
-      // Only handle arrow keys if avatar is not in small mode
-      if (avatarMode === 'small') return;
-      
-      // Check if input field is focused - don't interfere with text input
-      const activeElement = document.activeElement;
-      const isInputFocused = activeElement?.tagName === "TEXTAREA" || activeElement?.tagName === "INPUT";
-      if (isInputFocused) return;
-      
-      const stepSize = 10; // Pixels to move per keypress
-      const currentPos = avatarPosition || { x: 24, y: window.innerHeight / 2 };
-      
-      let newPosition = { ...currentPos };
-      let moved = false;
-      
-      switch (e.key) {
-        case "ArrowUp":
-          e.preventDefault();
-          newPosition.y = Math.max(20, currentPos.y - stepSize);
-          moved = true;
-          break;
-        case "ArrowDown":
-          e.preventDefault();
-          newPosition.y = Math.min(window.innerHeight - 20, currentPos.y + stepSize);
-          moved = true;
-          break;
-        case "ArrowLeft":
-          e.preventDefault();
-          newPosition.x = Math.max(20, currentPos.x - stepSize);
-          moved = true;
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          newPosition.x = Math.min(window.innerWidth - 20, currentPos.x + stepSize);
-          moved = true;
-          break;
-      }
-      
-      if (moved) {
-        // Mark that arrow key control is active
-        setIsArrowKeyControl(true);
-        
-        // Clear existing timeout
-        if (arrowKeyTimeoutRef.current) {
-          clearTimeout(arrowKeyTimeoutRef.current);
-        }
-        
-        // Update position
-        setAvatarPosition(newPosition);
-        
-        // Reset flag after a delay (when user stops pressing keys)
-        arrowKeyTimeoutRef.current = setTimeout(() => {
-          setIsArrowKeyControl(false);
-        }, 200);
-      }
-    };
-
-    window.addEventListener("keydown", handleArrowKeys);
-    return () => {
-      window.removeEventListener("keydown", handleArrowKeys);
-      if (arrowKeyTimeoutRef.current) {
-        clearTimeout(arrowKeyTimeoutRef.current);
-      }
-    };
-  }, [avatarPosition, avatarMode]);
-
-  // Track if 'a' key is pressed for a+1 combination
-  const aKeyPressedRef = useRef(false);
 
   // Hotkey handling
   useEffect(() => {
@@ -651,66 +395,11 @@ export const App: React.FC = () => {
       // Check if input field is focused
       const activeElement = document.activeElement;
       const isInputFocused = activeElement?.tagName === "TEXTAREA" || activeElement?.tagName === "INPUT";
-      const hasMeta = e.ctrlKey || e.metaKey;
-
-      // If input is focused, require meta key; otherwise, don't allow meta key
-      if (isInputFocused && !hasMeta) return;
-      if (!isInputFocused && hasMeta) return;
+      if (isInputFocused) return;
 
       const key = e.key.toLowerCase();
 
-      // Handle a+1 combination for avatar minimize/restore
-      if (key === "a") {
-        aKeyPressedRef.current = true;
-        // Clear flag after a short delay if no '1' is pressed
-        setTimeout(() => {
-          aKeyPressedRef.current = false;
-        }, 1000);
-        return; // Don't prevent default, just track the key
-      }
-
-      if (key === "1" && aKeyPressedRef.current) {
-        e.preventDefault();
-        aKeyPressedRef.current = false;
-        setAvatarMode(avatarMode === 'small' ? 'large' : 'small');
-        return;
-      }
-
-      // Reset a key flag if other keys are pressed
-      if (aKeyPressedRef.current && key !== "1") {
-        aKeyPressedRef.current = false;
-      }
-
-      // Prevent default only for our hotkeys
       switch (key) {
-        case "s":
-          e.preventDefault();
-          triggerAvatarButtonPress("Scheduler", () => setSchedulerOpen(!schedulerOpen));
-          break;
-        case "t":
-          e.preventDefault();
-          triggerAvatarButtonPress("Toolbox", () => setToolboxOpen(!toolboxOpen));
-          break;
-        case "w":
-          e.preventDefault();
-          triggerAvatarButtonPress("Workers", () => setWorkersOpen(!workersOpen));
-          break;
-        case "l":
-          e.preventDefault();
-          triggerAvatarButtonPress("Logs", () => setLogsOpen(!logsOpen));
-          break;
-        case "m":
-          e.preventDefault();
-          triggerAvatarButtonPress("Memory", () => setMemoryOpen(!memoryOpen));
-          break;
-        case "c":
-          e.preventDefault();
-          triggerAvatarButtonPress("Conversation", () => handlePanelToggle("conversation"));
-          break;
-        case "p":
-          e.preventDefault();
-          triggerAvatarButtonPress("Preferences", () => handlePanelToggle("preferences"));
-          break;
         case ".":
         case ",":
           e.preventDefault();
@@ -729,10 +418,9 @@ export const App: React.FC = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [schedulerOpen, toolboxOpen, workersOpen, logsOpen, memoryOpen, activePanel, avatarMode]);
+  }, [schedulerOpen, toolboxOpen, workersOpen, logsOpen, memoryOpen, activePanel]);
 
   return (
-    <AIControllableProvider>
       <div className="app-shell">
         {/* AI Selection Overlay */}
         <AISelectionOverlay />
@@ -741,14 +429,11 @@ export const App: React.FC = () => {
         <Avatar 
         status={status}
         position={avatarPosition}
-        emotion={avatarEmotion}
-        mode={avatarMode}
+        size={avatarSize}
+        onPositionChange={setAvatarPosition}
+        onSizeChange={setAvatarSize}
         onDragEnd={handleAvatarDragEnd}
-        onClick={handleAvatarClick}
-        onDoubleClick={handleAvatarDoubleClick}
         onContextMenu={handleAvatarContextMenu}
-        onModeChange={setAvatarMode}
-        isArrowKeyControl={isArrowKeyControl}
       />
 
       {/* Context Menu */}
@@ -761,8 +446,9 @@ export const App: React.FC = () => {
         />
       )}
       
-      <aside className="sidebar">
-        <div className="sidebar-content">
+      <div className="sidebar-wrapper">
+        <aside className="sidebar">
+          <div className="sidebar-content">
           <nav className="sidebar-nav">
             <IconButton
               icon={<WorkersIcon />}
@@ -771,8 +457,7 @@ export const App: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={() => setWorkersOpen(!workersOpen)}
-              aiControllable={true}
-              aiId="sidebar-button-workers"
+              aiControllable={false}
             />
             <IconButton
               icon={<ClockIcon />}
@@ -781,8 +466,7 @@ export const App: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={() => setSchedulerOpen(!schedulerOpen)}
-              aiControllable={true}
-              aiId="sidebar-button-scheduler"
+              aiControllable={false}
             />
             <IconButton
               icon={<ToolboxIcon />}
@@ -791,8 +475,7 @@ export const App: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={() => setToolboxOpen(!toolboxOpen)}
-              aiControllable={true}
-              aiId="sidebar-button-toolbox"
+              aiControllable={false}
             />
             <div className="sidebar-divider" />
             <IconButton
@@ -802,8 +485,7 @@ export const App: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={() => handlePanelToggle("conversation")}
-              aiControllable={true}
-              aiId="sidebar-button-conversation"
+              aiControllable={false}
             />
             <IconButton
               icon={<MemoryIcon />}
@@ -812,8 +494,7 @@ export const App: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={() => setMemoryOpen(!memoryOpen)}
-              aiControllable={true}
-              aiId="sidebar-button-memory"
+              aiControllable={false}
             />
             <div className="sidebar-divider" />
             <IconButton
@@ -823,8 +504,7 @@ export const App: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={() => setLogsOpen(!logsOpen)}
-              aiControllable={true}
-              aiId="sidebar-button-logs"
+              aiControllable={false}
             />
             <IconButton
               icon={<PreferencesIcon />}
@@ -833,12 +513,12 @@ export const App: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={() => handlePanelToggle("preferences")}
-              aiControllable={true}
-              aiId="sidebar-button-preferences"
+              aiControllable={false}
             />
           </nav>
         </div>
       </aside>
+      </div>
 
       <main className="main">
         <section className="chat-section">
@@ -867,6 +547,13 @@ export const App: React.FC = () => {
       {/* Logs Panel with integrated button */}
       <LogsPanel isOpen={logsOpen} onClose={() => setLogsOpen(false)} onOpen={() => setLogsOpen(true)} />
       </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <AIControllableProvider>
+      <AppContent />
     </AIControllableProvider>
   );
 };

@@ -45,7 +45,9 @@ const useConditionalAIControllable = (
     return () => {
       unregister(id);
     };
-  }, [aiControllable, id, type, label, description, register, unregister]);
+    // Remove label and description from dependencies - they're stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiControllable, id, type, register, unregister]);
 };
 
 interface IconButtonProps {

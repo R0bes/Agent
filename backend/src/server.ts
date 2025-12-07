@@ -131,7 +131,7 @@ export function sendAvatarCommand(command: { command: 'move' | 'capability' | 'e
     }
 
     // Bridge eventBus -> Socket.IO for all relevant events
-    const eventTypes = ["message_created", "job_updated", "memory_updated", "gui_action"] as const;
+    const eventTypes = ["message_created", "job_updated", "memory_updated", "gui_action", "tool_execute", "tool_executed"] as const;
     for (const type of eventTypes) {
       eventBus.on(type, (event) => broadcastToClients(event, type));
     }

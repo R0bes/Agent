@@ -18,6 +18,13 @@ export interface AvatarContext {
   size: number;  // 0.25 - 1.75 (direkt)
   sendToBackend: (event: { type: string; payload: any }) => void;
   setSize?: (size: number) => void;  // Statt setMode
+  moveAvatar?: (position: AvatarPosition) => void; // Für Mimikri-Bewegung
+  setMimikriIcon?: (icon: string | null) => void;
+  setMimikriWall?: (wall: 'left' | 'right' | 'top' | 'bottom' | null) => void;
+  setMimikriStartPosition?: (pos: AvatarPosition | null) => void;
+  setMimikriStartSize?: (size: number | null) => void;
+  getMimikriStartPosition?: () => AvatarPosition | null;
+  getMimikriStartSize?: () => number | null;
 }
 
 // Capabilities (später implementiert)
