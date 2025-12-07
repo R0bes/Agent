@@ -57,26 +57,40 @@ const app = Fastify({
   logger: fastifyLogger
 });
 
-
-// Register CORS
-app.register(cors, {
-  origin: true,
-  credentials: true
-});
-
-// Register Socket.IO
-await app.register(fastifySocketIO, {
-  cors: { origin: "*" }
-});
-
-logInfo("Server: Fastify, CORS and Socket.IO registered");
-
 // Socket.IO clients tracking
 const socketClients = new Map<string, any>();
 
-// Listen for source_message events and process them through persona
-import { handleSourceMessage } from "./components/persona";
-eventBus.on("source_message", async (event) => {
+// Function to send avatar command to all connected clients
+export function sendAvatarCommand(command: { command: 'move' | 'capability' | 'expression' | 'action'; target?: { x: number; y: number }; capabilityId?: string; args?: Record<string, any> }) {
+  if (!app.io) {
+    logWarn("Server: Cannot send avatar command - Socket.IO not initialized");
+    return;
+  }
+  logDebug("Server: Sending avatar command", { command, clientCount: socketClients.size });
+  app.io.emit('avatar_command', command);
+}
+
+// Wrap entire server startup in async function to catch all errors
+(async () => {
+  try {
+
+
+    // Register CORS
+    app.register(cors, {
+      origin: true,
+      credentials: true
+    });
+
+    // Register Socket.IO
+    await app.register(fastifySocketIO, {
+      cors: { origin: "*" }
+    });
+
+    logInfo("Server: Fastify, CORS and Socket.IO registered");
+
+    // Listen for source_message events and process them through persona
+    import { handleSourceMessage } from "./components/persona";
+    eventBus.on("source_message", async (event) => {
   const sourceMessage = event.payload;
   logDebug("Server: Processing source message", {
     messageId: sourceMessage.id,
@@ -107,37 +121,27 @@ eventBus.on("source_message", async (event) => {
   }
 });
 
-function broadcastToClients(event: any, eventType: string) {
-  logDebug("Server: Broadcasting to Socket.IO clients", {
-    eventType,
-    clientCount: socketClients.size
-  });
-  
-  app.io.emit(eventType, event);
-}
+    function broadcastToClients(event: any, eventType: string) {
+      logDebug("Server: Broadcasting to Socket.IO clients", {
+        eventType,
+        clientCount: socketClients.size
+      });
+      
+      app.io.emit(eventType, event);
+    }
 
-// Function to send avatar command to all connected clients
-export function sendAvatarCommand(command: { command: 'move' | 'capability' | 'expression' | 'action'; target?: { x: number; y: number }; capabilityId?: string; args?: Record<string, any> }) {
-  if (!app.io) {
-    logWarn("Server: Cannot send avatar command - Socket.IO not initialized");
-    return;
-  }
-  logDebug("Server: Sending avatar command", { command, clientCount: socketClients.size });
-  app.io.emit('avatar_command', command);
-}
+    // Bridge eventBus -> Socket.IO for all relevant events
+    const eventTypes = ["message_created", "job_updated", "memory_updated", "gui_action"] as const;
+    for (const type of eventTypes) {
+      eventBus.on(type, (event) => broadcastToClients(event, type));
+    }
 
-// Bridge eventBus -> Socket.IO for all relevant events
-const eventTypes = ["message_created", "job_updated", "memory_updated", "gui_action"] as const;
-for (const type of eventTypes) {
-  eventBus.on(type, (event) => broadcastToClients(event, type));
-}
-
-app.get("/health", async (req) => {
-  logDebug("Health check requested", {
-    requestId: req.id
-  });
-  return { status: "ok" };
-});
+    app.get("/health", async (req) => {
+      logDebug("Health check requested", {
+        requestId: req.id
+      });
+      return { status: "ok" };
+    });
 
 // Register all components
 // Register toolbox first so it can manage other tools

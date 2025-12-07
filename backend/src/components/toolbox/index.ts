@@ -64,14 +64,32 @@ class ToolboxService extends AbstractService {
   }
 
   protected async onInitialize(): Promise<void> {
-    await toolboxStore.initialize();
+    try {
+      await toolboxStore.initialize();
+      logDebug("Toolbox: Store initialized");
+    } catch (err) {
+      logError("Toolbox: Failed to initialize store", err);
+      throw err;
+    }
     
-    // Registriere SystemToolSets
-    const avatarToolSet = new AvatarToolSet();
-    this.registerSystemToolSet(avatarToolSet);
+    try {
+      // Registriere SystemToolSets
+      const avatarToolSet = new AvatarToolSet();
+      this.registerSystemToolSet(avatarToolSet);
+      logDebug("Toolbox: AvatarToolSet registered");
+    } catch (err) {
+      logError("Toolbox: Failed to register AvatarToolSet", err);
+      throw err;
+    }
     
-    // Lade externe ToolSets aus Konfiguration
-    await this.loadExternalToolSets();
+    try {
+      // Lade externe ToolSets aus Konfiguration
+      await this.loadExternalToolSets();
+      logDebug("Toolbox: External tool sets loaded");
+    } catch (err) {
+      logError("Toolbox: Failed to load external tool sets", err);
+      // Don't throw - external tool sets are optional
+    }
     
     // Event-Subscription für tool_execute Events
     eventBus.on("tool_execute", async (event) => {
