@@ -143,10 +143,9 @@ export function sendAvatarCommand(command: { command: 'move' | 'capability' | 'e
       return { status: "ok" };
     });
 
-// Register all components
-// Register toolbox first so it can manage other tools
-logInfo("Server: Registering components");
-await registerComponent(toolboxComponent);
+        // Register toolbox first so it can manage other tools
+    logInfo("Server: Registering components");
+    await registerComponent(toolboxComponent);
 logDebug("Server: Toolbox component registered");
 await registerComponent(llmComponent);
 logDebug("Server: LLM component registered");
@@ -164,132 +163,132 @@ await registerComponent(schedulerToolComponent);
 logDebug("Server: Scheduler tool component registered");
 await registerComponent(workerManagerToolComponent);
 logDebug("Server: Worker manager tool component registered");
-await registerComponent(guiControlToolComponent);
-logDebug("Server: GUI control tool component registered");
+    await registerComponent(guiControlToolComponent);
+    logDebug("Server: GUI control tool component registered");
 
-// Try to load event crawler component (requires playwright)
-try {
-  const eventCrawlerModule = await import("./components/tools/eventCrawler/index.js");
-  if (eventCrawlerModule.eventCrawlerComponent) {
-    await registerComponent(eventCrawlerModule.eventCrawlerComponent);
-    logDebug("Server: Event crawler tool component registered");
-  } else {
-    logWarn("Server: Event crawler component not found in module");
-  }
-} catch (err) {
-  logWarn("Server: Event crawler component skipped (playwright may not be installed)", {
-    error: err instanceof Error ? err.message : String(err)
-  });
-}
+    // Try to load event crawler component (requires playwright)
+    try {
+      const eventCrawlerModule = await import("./components/tools/eventCrawler/index.js");
+      if (eventCrawlerModule.eventCrawlerComponent) {
+        await registerComponent(eventCrawlerModule.eventCrawlerComponent);
+        logDebug("Server: Event crawler tool component registered");
+      } else {
+        logWarn("Server: Event crawler component not found in module");
+      }
+    } catch (err) {
+      logWarn("Server: Event crawler component skipped (playwright may not be installed)", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
 
-// Register workers
-logInfo("Server: Registering workers");
-await registerComponent(memoryCompactionWorkerComponent);
-logDebug("Server: Memory compaction worker component registered");
-// Register workers with engine
-const memoryWorker = memoryCompactionWorkerComponent.worker;
-if (memoryWorker) {
-  bullMQWorkerEngine.registerWorker(memoryWorker as any);
-  logDebug("Server: Memory compaction worker registered with engine");
-}
+    // Register workers
+    logInfo("Server: Registering workers");
+    await registerComponent(memoryCompactionWorkerComponent);
+    logDebug("Server: Memory compaction worker component registered");
+    // Register workers with engine
+    const memoryWorker = memoryCompactionWorkerComponent.worker;
+    if (memoryWorker) {
+      bullMQWorkerEngine.registerWorker(memoryWorker as any);
+      logDebug("Server: Memory compaction worker registered with engine");
+    }
 
-const taskWorker = taskWorkerComponent.worker;
-if (taskWorker) {
-  bullMQWorkerEngine.registerWorker(taskWorker as any);
-  logDebug("Server: Task worker registered with engine");
-}
+    const taskWorker = taskWorkerComponent.worker;
+    if (taskWorker) {
+      bullMQWorkerEngine.registerWorker(taskWorker as any);
+      logDebug("Server: Task worker registered with engine");
+    }
 
-// Register tool execution worker
-try {
-  const { toolExecutionWorkerComponent } = await import("./components/worker/toolExecution/index.js");
-  await registerComponent(toolExecutionWorkerComponent);
-  logDebug("Server: Tool execution worker component registered");
-  const toolExecutionWorker = toolExecutionWorkerComponent.worker;
-  if (toolExecutionWorker) {
-    bullMQWorkerEngine.registerWorker(toolExecutionWorker as any);
-    logDebug("Server: Tool execution worker registered with engine");
-  }
-} catch (err) {
-  logWarn("Server: Tool execution worker registration failed", {
-    error: err instanceof Error ? err.message : String(err)
-  });
-}
+    // Register tool execution worker
+    try {
+      const { toolExecutionWorkerComponent } = await import("./components/worker/toolExecution/index.js");
+      await registerComponent(toolExecutionWorkerComponent);
+      logDebug("Server: Tool execution worker component registered");
+      const toolExecutionWorker = toolExecutionWorkerComponent.worker;
+      if (toolExecutionWorker) {
+        bullMQWorkerEngine.registerWorker(toolExecutionWorker as any);
+        logDebug("Server: Tool execution worker registered with engine");
+      }
+    } catch (err) {
+      logWarn("Server: Tool execution worker registration failed", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
 
-logInfo("Server: All workers registered");
+    logInfo("Server: All workers registered");
 
-// Initialize database
-logInfo("Server: Initializing database");
-try {
-  const { createPostgresPool } = await import("./database/postgres.js");
-  const { runMigrations } = await import("./database/migrations.js");
-  
-  const pool = await createPostgresPool();
-  await runMigrations(pool);
-  
-  logInfo("Server: Database initialized successfully");
+    // Initialize database
+    logInfo("Server: Initializing database");
+    try {
+      const { createPostgresPool } = await import("./database/postgres.js");
+      const { runMigrations } = await import("./database/migrations.js");
+      
+      const pool = await createPostgresPool();
+      await runMigrations(pool);
+      
+      logInfo("Server: Database initialized successfully");
 
-  // Initialize Qdrant vector database
-  logInfo("Server: Initializing Qdrant");
-  try {
-    const { qdrantClient } = await import("./components/memory/qdrantClient.js");
-    const { embeddingClient } = await import("./components/llm/embeddingClient.js");
-    
-    // Get embedding dimension from model
-    const dimension = await embeddingClient.getDimension();
-    await qdrantClient.initialize(dimension);
-    
-    logInfo("Server: Qdrant initialized successfully", {
-      dimension,
-      collection: "memories",
-      model: embeddingClient.getModel()
-    });
-  } catch (qdrantErr) {
-    logError("Server: Qdrant initialization failed", qdrantErr);
-    logWarn("Server: Continuing without Qdrant - semantic search will not work");
-  }
-} catch (err) {
-  logError("Server: Database initialization failed", err);
-  logWarn("Server: Continuing without database - memory/message features may not work");
-}
+      // Initialize Qdrant vector database
+      logInfo("Server: Initializing Qdrant");
+      try {
+        const { qdrantClient } = await import("./components/memory/qdrantClient.js");
+        const { embeddingClient } = await import("./components/llm/embeddingClient.js");
+        
+        // Get embedding dimension from model
+        const dimension = await embeddingClient.getDimension();
+        await qdrantClient.initialize(dimension);
+        
+        logInfo("Server: Qdrant initialized successfully", {
+          dimension,
+          collection: "memories",
+          model: embeddingClient.getModel()
+        });
+      } catch (qdrantErr) {
+        logError("Server: Qdrant initialization failed", qdrantErr);
+        logWarn("Server: Continuing without Qdrant - semantic search will not work");
+      }
+    } catch (err) {
+      logError("Server: Database initialization failed", err);
+      logWarn("Server: Continuing without database - memory/message features may not work");
+    }
 
-// Register routes
-logInfo("Server: Registering API routes");
-try {
-  await registerChatRoutes(app);
-  logDebug("Server: Chat routes registered");
-  await registerJobsRoutes(app);
-  logDebug("Server: Jobs routes registered");
-  await registerMemoryRoutes(app);
-  logDebug("Server: Memory routes registered");
-  await registerMessagesRoutes(app);
-  logDebug("Server: Messages routes registered");
-  await registerToolsRoutes(app);
-  logDebug("Server: Tools routes registered");
-  await registerWorkersRoutes(app);
-  logDebug("Server: Workers routes registered");
-  await registerSchedulerRoutes(app);
-  logDebug("Server: Scheduler routes registered");
-  await registerLogsRoutes(app);
-  logDebug("Server: Logs routes registered");
-  await registerConversationRoutes(app);
-  logDebug("Server: Conversation routes registered");
-  logInfo("Server: All API routes registered");
-} catch (err) {
-  logError("Server: Failed to register API routes", err);
-  throw err; // Re-throw to prevent server from starting with broken routes
-}
+    // Register routes
+    logInfo("Server: Registering API routes");
+    try {
+      await registerChatRoutes(app);
+      logDebug("Server: Chat routes registered");
+      await registerJobsRoutes(app);
+      logDebug("Server: Jobs routes registered");
+      await registerMemoryRoutes(app);
+      logDebug("Server: Memory routes registered");
+      await registerMessagesRoutes(app);
+      logDebug("Server: Messages routes registered");
+      await registerToolsRoutes(app);
+      logDebug("Server: Tools routes registered");
+      await registerWorkersRoutes(app);
+      logDebug("Server: Workers routes registered");
+      await registerSchedulerRoutes(app);
+      logDebug("Server: Scheduler routes registered");
+      await registerLogsRoutes(app);
+      logDebug("Server: Logs routes registered");
+      await registerConversationRoutes(app);
+      logDebug("Server: Conversation routes registered");
+      logInfo("Server: All API routes registered");
+    } catch (err) {
+      logError("Server: Failed to register API routes", err);
+      throw err; // Re-throw to prevent server from starting with broken routes
+    }
 
-// Initialize schedule store
-try {
-  await scheduleStore.initialize();
-  logInfo("Server: Schedule store initialized");
-} catch (err) {
-  logError("Server: Failed to initialize schedule store", err);
-  logWarn("Server: Continuing without schedule store - scheduler features may not work");
-}
+    // Initialize schedule store
+    try {
+      await scheduleStore.initialize();
+      logInfo("Server: Schedule store initialized");
+    } catch (err) {
+      logError("Server: Failed to initialize schedule store", err);
+      logWarn("Server: Continuing without schedule store - scheduler features may not work");
+    }
 
-// Socket.IO connection handler (must be after app.ready())
-app.ready().then(() => {
+    // Socket.IO connection handler (must be after app.ready())
+    app.ready().then(() => {
   logInfo("Server: Setting up Socket.IO connection handler");
   
   app.io.on('connection', (socket) => {
@@ -368,16 +367,14 @@ app.ready().then(() => {
     });
   });
   
-  logInfo("Server: Socket.IO connection handler ready");
-}).catch((err) => {
-  logError("Server: Failed to setup Socket.IO connection handler", err);
-});
+      logInfo("Server: Socket.IO connection handler ready");
+    }).catch((err) => {
+      logError("Server: Failed to setup Socket.IO connection handler", err);
+    });
 
-const PORT = Number(process.env.PORT || 3001);
+    const PORT = Number(process.env.PORT || 3001);
 
-// Start server - wrap in async IIFE to handle errors properly
-(async () => {
-  try {
+    // Start server
     logInfo("Server: Starting backend server", { port: PORT });
     
     await app.listen({ port: PORT, host: "0.0.0.0" });
@@ -387,12 +384,22 @@ const PORT = Number(process.env.PORT || 3001);
       url: `http://localhost:${PORT}`
     });
   } catch (err) {
-    logError("Server: Failed to start", err, {
-      port: PORT,
-      errorCode: (err as any)?.code,
-      errorMessage: err instanceof Error ? err.message : String(err),
-      stack: err instanceof Error ? err.stack : undefined
-    });
+    // Use console.error as fallback if logger isn't initialized
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorStack = err instanceof Error ? err.stack : undefined;
+    
+    try {
+      logError("Server: Failed to start", err, {
+        errorMessage,
+        errorStack
+      });
+    } catch {
+      console.error("FATAL: Server failed to start:", errorMessage);
+      if (errorStack) {
+        console.error(errorStack);
+      }
+    }
+    
     process.exit(1);
   }
 })();
