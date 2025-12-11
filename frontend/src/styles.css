@@ -3596,13 +3596,7 @@ body {
 }
 
 .worker-expand-icon {
-  font-size: 10px;
-  color: var(--muted);
-  transition: transform 0.2s ease;
-}
-
-.worker-card-expanded .worker-expand-icon {
-  transform: rotate(90deg);
+  display: none;
 }
 
 .badge {
@@ -3654,13 +3648,15 @@ body {
 }
 
 .worker-detail-description {
-  margin-top: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
   padding: var(--spacing-sm);
   background: var(--bg);
   border-radius: var(--radius-sm);
   font-size: 11px;
   color: var(--text-soft);
   line-height: 1.5;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--spacing-sm);
 }
 
 /* Main content adjusts when panel is open */
@@ -3767,11 +3763,7 @@ main {
 }
 
 .worker-expand-icon {
-  font-size: 10px;
-  color: var(--muted);
-  transition: transform 0.2s ease;
-  flex-shrink: 0;
-  margin-left: var(--spacing-xs);
+  display: none;
 }
 
 .workers-sidebar .badge {
@@ -3835,12 +3827,12 @@ main {
 
 /* Queue Panel - Slides up from bottom */
 /* Queue Panel - Inside Workers Panel */
-.queue-panel {
+.jobs-view-panel {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 350px;
+  height: 400px;
   background: var(--bg);
   border-top: 1px solid var(--border);
   border-top-left-radius: var(--radius-lg);
@@ -3853,13 +3845,13 @@ main {
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.queue-panel-expanded {
+.jobs-view-panel-expanded {
   transform: translateY(0);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Morphing Button/Header - Transforms between button and header */
-.queue-panel-morph {
+.jobs-view-panel-morph {
   position: absolute;
   bottom: calc(100% - 8px);
   left: 50%;
@@ -3889,14 +3881,14 @@ main {
   padding: 0;
 }
 
-.queue-panel-morph:hover:not(.queue-panel-morph-expanded) {
+.jobs-view-panel-morph:hover:not(.jobs-view-panel-morph-expanded) {
   background: linear-gradient(135deg, rgba(51, 65, 85, 0.7) 0%, rgba(30, 41, 59, 0.7) 100%);
   transform: translateX(-50%) translateY(-2px);
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Expanded state - morphs into full header */
-.queue-panel-morph-expanded {
+.jobs-view-panel-morph-expanded {
   bottom: 100%;
   left: 0;
   transform: translateX(0);
@@ -3911,7 +3903,7 @@ main {
   justify-content: flex-start;
 }
 
-.queue-panel-morph-content {
+.jobs-view-panel-morph-content {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3922,46 +3914,38 @@ main {
   position: relative;
 }
 
-.queue-panel-morph-expanded .queue-panel-morph-content {
+.jobs-view-panel-morph-expanded .jobs-view-panel-morph-content {
   gap: var(--spacing-sm);
   justify-content: flex-start;
 }
 
-/* In closed state, absolutely center the icon and hide text elements */
-.queue-panel-morph:not(.queue-panel-morph-expanded) .queue-panel-morph-content svg {
+.jobs-view-panel-morph-content span:first-child {
+  font-size: 20px;
+  opacity: 0.7;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.jobs-view-panel-morph:not(.jobs-view-panel-morph-expanded) .jobs-view-panel-morph-content span:first-child {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
 }
 
-.queue-panel-morph-expanded .queue-panel-morph-content svg {
+.jobs-view-panel-morph-expanded .jobs-view-panel-morph-content span:first-child {
   position: relative;
   left: auto;
   top: auto;
   transform: none;
-}
-
-.queue-panel-morph-content svg {
-  color: var(--accent);
-  width: 20px;
-  height: 20px;
-  opacity: 0.7;
-  flex-shrink: 0;
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.queue-panel-morph:hover:not(.queue-panel-morph-expanded) .queue-panel-morph-content svg {
+  font-size: 18px;
   opacity: 1;
 }
 
-.queue-panel-morph-expanded .queue-panel-morph-content svg {
+.jobs-view-panel-morph:hover:not(.jobs-view-panel-morph-expanded) .jobs-view-panel-morph-content span:first-child {
   opacity: 1;
-  width: 18px;
-  height: 18px;
 }
 
-.queue-panel-morph-title {
+.jobs-view-panel-morph-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
@@ -3974,14 +3958,14 @@ main {
   pointer-events: none;
 }
 
-.queue-panel-morph-expanded .queue-panel-morph-title {
+.jobs-view-panel-morph-expanded .jobs-view-panel-morph-title {
   opacity: 1;
   max-width: 200px;
   transform: translateX(0);
   pointer-events: auto;
 }
 
-.queue-panel-morph-count {
+.jobs-view-panel-morph-count {
   padding: 2px 6px;
   background: var(--bg-elevated);
   border-radius: var(--radius-full);
@@ -3997,14 +3981,14 @@ main {
   pointer-events: none;
 }
 
-.queue-panel-morph-expanded .queue-panel-morph-count {
+.jobs-view-panel-morph-expanded .jobs-view-panel-morph-count {
   opacity: 1;
   max-width: 50px;
   transform: translateX(0);
   pointer-events: auto;
 }
 
-.queue-panel-badge {
+.jobs-view-panel-badge {
   position: absolute;
   top: 4px;
   right: 4px;
@@ -4031,32 +4015,102 @@ main {
   font-weight: 600;
 }
 
-.queue-panel-body {
+.jobs-view-panel-body {
   flex: 1;
   overflow-y: auto;
   padding: var(--spacing-md);
   min-height: 0;
   background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
-.queue-panel-body::-webkit-scrollbar {
+.jobs-view-panel-body::-webkit-scrollbar {
   width: 6px;
 }
 
-.queue-panel-body::-webkit-scrollbar-track {
+.jobs-view-panel-body::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.queue-panel-body::-webkit-scrollbar-thumb {
+.jobs-view-panel-body::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: var(--radius-full);
 }
 
-.queue-panel-body::-webkit-scrollbar-thumb:hover {
+.jobs-view-panel-body::-webkit-scrollbar-thumb:hover {
   background: var(--border-soft);
 }
 
-.queue-empty {
+/* Filters */
+.jobs-view-filters {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.jobs-view-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+  min-width: 120px;
+}
+
+.jobs-view-filter-group label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jobs-view-filter-select {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jobs-view-filter-select:hover {
+  border-color: var(--border-soft);
+  background: var(--bg-elevated);
+}
+
+.jobs-view-filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.jobs-view-filter-clear {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-soft);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  height: fit-content;
+}
+
+.jobs-view-filter-clear:hover {
+  background: var(--error);
+  border-color: var(--error);
+  color: white;
+}
+
+.jobs-view-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4065,12 +4119,12 @@ main {
   opacity: 0.5;
 }
 
-.queue-empty-icon {
+.jobs-view-empty-icon {
   font-size: 32px;
   margin-bottom: var(--spacing-sm);
 }
 
-.queue-empty-text {
+.jobs-view-empty-text {
   font-size: 12px;
   color: var(--muted);
 }

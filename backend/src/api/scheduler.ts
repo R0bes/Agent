@@ -5,7 +5,7 @@
  */
 
 import type { FastifyInstance } from "fastify";
-import { scheduleStore, type ScheduledTask, type ScheduledTaskType } from "../models/scheduleStore";
+import { scheduleStore, type ScheduledTask, type ScheduledTaskType } from "../legacy/models/scheduleStore";
 import { logInfo, logDebug, logWarn, logError } from "../utils/logger";
 import { eventBus } from "../events/eventBus";
 

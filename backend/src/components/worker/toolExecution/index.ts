@@ -7,8 +7,8 @@
  * Emittiert tool_executed Event mit Result.
  */
 
-import { AbstractWorker } from "../../base/AbstractWorker";
-import type { Component, ToolContext } from "../../types";
+import { AbstractWorker } from "../../../legacy/components/base/AbstractWorker";
+import type { Component, ToolContext } from "../../../legacy/components/types";
 import { toolboxService } from "../../toolbox";
 import { eventBus } from "../../../events/eventBus";
 import { logInfo, logDebug, logError } from "../../../utils/logger";

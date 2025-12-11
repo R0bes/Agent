@@ -16,54 +16,71 @@ pipx install -e .
 
 ## Verwendung
 
-Nach der Installation kannst du das Tool mit `agent` oder `a` aufrufen:
+Nach der Installation kannst du das Tool mit `agent` aufrufen:
 
 ```bash
-# Interaktives Control-Menü
-agent con
-# oder
-a con
+# Interaktives Menü (ohne Argumente)
+agent
 
 # Status anzeigen
 agent status
+
+# Services starten/stoppen
+agent backend    # oder: agent be
+agent frontend   # oder: agent fe
+agent infra
+agent all
 ```
 
 ## Befehle
 
-### `agent con` / `agent control`
+### `agent` (ohne Argumente)
 
 Öffnet ein interaktives Menü zum Steuern aller Services:
 
 - **Backend** starten/stoppen
 - **Frontend** starten/stoppen
 - **Infrastructure** (Docker Services) starten/stoppen
-- **Alle Services** stoppen
-- **Status** aktualisieren
+- **Alle Services** starten/stoppen
+- **Exit**
 
 ### `agent status`
 
 Zeigt den aktuellen Status aller Services an:
 - Backend (Port 3001)
-- Frontend (Port 5173)
+- Frontend (Port 5174)
 - Infrastructure Services (Postgres, Redis, Qdrant, NATS)
+
+### `agent backend|be`
+
+Startet oder stoppt den Backend-Service (Toggle).
+
+### `agent frontend|fe`
+
+Startet oder stoppt den Frontend-Service (Toggle).
+
+### `agent infra`
+
+Startet oder stoppt alle Infrastructure-Services (Toggle).
+
+### `agent all`
+
+Startet oder stoppt alle Services (Toggle).
 
 ## Features
 
-- ✅ Status-Prüfung für alle Services
-- ✅ Port-Checks
-- ✅ HTTP-Health-Checks
-- ✅ Prozess-Erkennung
+- ✅ Status-Prüfung für alle Services (HTTP-Checks)
+- ✅ Nicht-blockierende Log-Ausgabe (CLI bleibt bedienbar)
 - ✅ Docker-Container-Status
 - ✅ Interaktives Menü mit Rich-UI
 - ✅ Start/Stop-Funktionalität für alle Komponenten
+- ✅ Zentrale Port-Konfiguration (hardcoded)
 
 ## Abhängigkeiten
 
 - `requests` - HTTP-Status-Checks
-- `rich` - Schöne Terminal-UI
-- `psutil` - Prozess-Management
+- `rich` - Terminal-UI
 
 ## Entwicklung
 
 Das Tool ist als Python-Package strukturiert und kann mit `pip install -e .` installiert werden.
-

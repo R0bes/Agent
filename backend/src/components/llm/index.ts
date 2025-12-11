@@ -6,52 +6,21 @@
  * - Tool: Can be called by agents via MCP endpoints
  */
 
-import { AbstractService } from "../base/AbstractService";
-import { AbstractTool } from "../base/AbstractTool";
-import type { Component, ServiceInterface, ToolInterface, ToolContext, ToolResult } from "../types";
+import { AbstractTool } from "../../legacy/components/base/AbstractTool";
+import type { Component, ToolContext, ToolResult } from "../../legacy/components/types";
 import type { OllamaChatMessage, OllamaChatOptions, OllamaChatResponse } from "./ollamaClient";
 import { ollamaChat as ollamaChatFunction } from "./ollamaClient";
 export { embeddingClient } from "./embeddingClient";
 export type { EmbeddingResult } from "./embeddingClient";
-import { logInfo, logDebug, logError } from "../../utils/logger";
+
+// Export service class for Execution Service registration
+export { ThreadedLLMService } from "./llmService";
 
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
-const BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-
-/**
- * LLM Service implementation
- */
-class LLMService extends AbstractService {
-  readonly id = "llm-service";
-  readonly name = "LLM Service";
-  readonly description = "Provides LLM functionality via Ollama";
-
-  protected async onInitialize(): Promise<void> {
-    logInfo("LLM Service: Initialized", {
-      model: DEFAULT_MODEL,
-      baseUrl: BASE_URL
-    });
-  }
-
-  async handleCall(call: { method: string; params: Record<string, unknown> }): Promise<{ success: boolean; data?: unknown; error?: string }> {
-    if (call.method === "chat") {
-      try {
-        const messages = call.params.messages as OllamaChatMessage[];
-        const opts: OllamaChatOptions = {
-          model: call.params.model as string | undefined
-        };
-        const response = await ollamaChatFunction(messages, opts);
-        return this.success(response);
-      } catch (err: any) {
-        return this.error(err?.message ?? String(err));
-      }
-    }
-    return this.error(`Unknown method: ${call.method}`);
-  }
-}
 
 /**
  * LLM Tool implementation
+ * Tool remains in main thread for now
  */
 class LLMTool extends AbstractTool {
   readonly name = "llm_chat";
@@ -134,23 +103,27 @@ class LLMTool extends AbstractTool {
   }
 }
 
-// Create singleton instances
-const llmServiceInstance = new LLMService();
+// Export service class for Execution Service registration
+export { ThreadedLLMService };
+
+// Create tool instance (tool remains in main thread for now)
 const llmToolInstance = new LLMTool();
 
 /**
  * LLM Component (Service + Tool)
+ * Legacy export for compatibility during migration
  */
 export const llmComponent: Component = {
   id: "llm",
   name: "LLM Component",
   description: "LLM functionality via Ollama, available as both service and tool",
-  service: llmServiceInstance,
+  service: null as any, // Will be set by Execution Service
   tool: llmToolInstance,
   async initialize() {
-    await llmServiceInstance.initialize();
+    // Initialization handled by Execution Service
   },
   async shutdown() {
-    await llmServiceInstance.shutdown();
+    // Shutdown handled by Execution Service
   }
 };
+

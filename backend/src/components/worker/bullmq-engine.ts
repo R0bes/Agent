@@ -7,8 +7,8 @@
 
 import { Queue, Worker, Job } from "bullmq";
 import { createRedisConnection } from "../../config/redis";
-import type { AbstractWorker, WorkerJob, WorkerStatus } from "../base/AbstractWorker";
-import type { ToolContext } from "../types";
+import type { AbstractWorker, WorkerJob, WorkerStatus } from "../../legacy/components/base/AbstractWorker";
+import type { ToolContext } from "../../legacy/components/types";
 import { eventBus } from "../../events/eventBus";
 import { logInfo, logDebug, logError } from "../../utils/logger";
 

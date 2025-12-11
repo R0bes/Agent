@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { subscribe } from "../eventBus";
 import { IconButton } from "./IconButton";
-import { WorkersIcon, QueueIcon, PriorityHighIcon, PriorityNormalIcon, PriorityLowIcon } from "./Icons";
+import { WorkersIcon, PriorityHighIcon, PriorityNormalIcon, PriorityLowIcon } from "./Icons";
 
 interface Worker {
   name: string;
@@ -14,13 +14,16 @@ interface Worker {
   maxRetries: number;
 }
 
-interface QueuedJob {
+interface Job {
   id: string;
   workerName: string;
-  status: string;
+  category: string;
+  type: "memory" | "tool" | "think";
+  label: string;
+  status: "queued" | "running" | "done" | "failed";
   createdAt: string;
-  priority: number;
-  args: any;
+  updatedAt: string;
+  error?: string;
 }
 
 interface WorkersPanelProps {
@@ -30,9 +33,12 @@ interface WorkersPanelProps {
 
 export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) => {
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [queuedJobs, setQueuedJobs] = useState<QueuedJob[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [expandedWorker, setExpandedWorker] = useState<string | null>(null);
-  const [queueExpanded, setQueueExpanded] = useState(false);
+  const [jobsViewExpanded, setJobsViewExpanded] = useState(false);
+  const [selectedWorkerFilter, setSelectedWorkerFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const panelExpanded = isOpen; // Use prop instead of local state
 
   // Close panel when clicking outside
@@ -56,15 +62,15 @@ export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) 
     };
   }, [panelExpanded, onToggle]);
 
-  // Close queue when clicking outside
+  // Close jobs view when clicking outside
   useEffect(() => {
-    if (!queueExpanded) return;
+    if (!jobsViewExpanded) return;
 
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      const queuePanel = target.closest('.queue-panel');
-      if (!queuePanel) {
-        setQueueExpanded(false);
+      const jobsPanel = target.closest('.jobs-view-panel');
+      if (!jobsPanel) {
+        setJobsViewExpanded(false);
       }
     };
 
@@ -76,7 +82,7 @@ export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) 
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [queueExpanded]);
+  }, [jobsViewExpanded]);
 
   useEffect(() => {
     // Initial load
@@ -89,14 +95,7 @@ export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) 
       })
       .catch((err) => console.error("Failed to load workers", err));
 
-    fetch("/api/jobs/queue")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data.jobs)) {
-          setQueuedJobs(data.jobs);
-        }
-      })
-      .catch((err) => console.error("Failed to load queue", err));
+    fetchJobs();
 
     // Subscribe to updates
     const unsubscribe = subscribe((event) => {
@@ -104,20 +103,24 @@ export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) 
         setWorkers(event.payload.workers as Worker[]);
       }
       if (event.type === "job_updated") {
-        // Reload queue when jobs update
-        fetch("/api/jobs/queue")
-          .then((res) => res.json())
-          .then((data) => {
-            if (Array.isArray(data.jobs)) {
-              setQueuedJobs(data.jobs);
-            }
-          })
-          .catch((err) => console.error("Failed to reload queue", err));
+        // Reload jobs when jobs update
+        fetchJobs();
       }
     });
 
     return unsubscribe;
   }, []);
+
+  const fetchJobs = () => {
+    fetch("/api/jobs")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.jobs)) {
+          setJobs(data.jobs);
+        }
+      })
+      .catch((err) => console.error("Failed to load jobs", err));
+  };
 
   const getCategoryIcon = (category: string) => {
     const icons: Record<string, string> = {
@@ -136,7 +139,14 @@ export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) 
   };
 
   const toggleWorker = (workerName: string) => {
-    setExpandedWorker(expandedWorker === workerName ? null : workerName);
+    if (expandedWorker === workerName) {
+      setExpandedWorker(null);
+      setSelectedWorkerFilter(null);
+    } else {
+      setExpandedWorker(workerName);
+      setSelectedWorkerFilter(workerName);
+      setJobsViewExpanded(true);
+    }
   };
 
   const getPriorityIcon = (priority: number) => {
@@ -163,12 +173,36 @@ export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) 
       const res = await fetch(`/api/jobs/${jobId}`, { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
-        setQueuedJobs((prev) => prev.filter((j) => j.id !== jobId));
+        fetchJobs();
       }
     } catch (err) {
       console.error("Failed to cancel job", err);
     }
   };
+
+  // Filter jobs based on selected filters
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((job) => {
+      if (selectedWorkerFilter && job.workerName !== selectedWorkerFilter) {
+        return false;
+      }
+      if (categoryFilter && job.category !== categoryFilter) {
+        return false;
+      }
+      if (statusFilter && job.status !== statusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [jobs, selectedWorkerFilter, categoryFilter, statusFilter]);
+
+  const uniqueCategories = useMemo(() => {
+    return Array.from(new Set(jobs.map(j => j.category))).sort();
+  }, [jobs]);
+
+  const uniqueStatuses = useMemo(() => {
+    return Array.from(new Set(jobs.map(j => j.status))).sort();
+  }, [jobs]);
 
   return (
     <>
@@ -214,12 +248,14 @@ export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) 
                             <div className="worker-icon">{getCategoryIcon(worker.category)}</div>
                             <div className="worker-title">{formatWorkerName(worker.name)}</div>
                             <span className={`badge badge-${worker.status}`}>{worker.status}</span>
-                            <span className="worker-expand-icon">{isExpanded ? '▼' : '▶'}</span>
                           </button>
                         </div>
                         
                         {isExpanded && (
                           <div className="worker-card-body">
+                            <div className="worker-detail-description">
+                              {worker.description}
+                            </div>
                             <div className="worker-detail-row">
                               <span className="worker-detail-label">Name:</span>
                               <span className="worker-detail-value">{worker.name}</span>
@@ -244,9 +280,6 @@ export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) 
                               <span className="worker-detail-label">Total Processed:</span>
                               <span className="worker-detail-value">{worker.totalProcessed}</span>
                             </div>
-                            <div className="worker-detail-description">
-                              {worker.description}
-                            </div>
                           </div>
                         )}
                       </li>
@@ -257,49 +290,131 @@ export const WorkersPanel: React.FC<WorkersPanelProps> = ({ isOpen, onToggle }) 
             </div>
           </div>
 
-          {/* Queue Panel - Slides up from bottom */}
-          <div className={`queue-panel ${queueExpanded ? 'queue-panel-expanded' : ''}`}>
+          {/* Jobs View Panel - Slides up from bottom */}
+          <div className={`jobs-view-panel ${jobsViewExpanded ? 'jobs-view-panel-expanded' : ''}`}>
             {/* Morphing Button/Header */}
             <button 
-              className={`queue-panel-morph ${queueExpanded ? 'queue-panel-morph-expanded' : ''}`}
+              className={`jobs-view-panel-morph ${jobsViewExpanded ? 'jobs-view-panel-morph-expanded' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
-                setQueueExpanded(!queueExpanded);
+                setJobsViewExpanded(!jobsViewExpanded);
               }}
-              title={queueExpanded ? "Click to close" : "Show Queue"}
+              title={jobsViewExpanded ? "Click to close" : "Show Jobs"}
             >
-              <div className="queue-panel-morph-content">
-                <QueueIcon />
-                <span className="queue-panel-morph-title">Queue</span>
-                <span className="queue-panel-morph-count">{queuedJobs.length}</span>
+              <div className="jobs-view-panel-morph-content">
+                <span>📋</span>
+                <span className="jobs-view-panel-morph-title">Jobs</span>
+                <span className="jobs-view-panel-morph-count">{jobs.length}</span>
               </div>
-              {!queueExpanded && queuedJobs.length > 0 && (
-                <span className="queue-panel-badge">{queuedJobs.length}</span>
+              {!jobsViewExpanded && jobs.length > 0 && (
+                <span className="jobs-view-panel-badge">{jobs.length}</span>
               )}
             </button>
             
-            <div className="queue-panel-body">
-              {queuedJobs.length === 0 ? (
-                <div className="queue-empty">
-                  <div className="queue-empty-icon">📋</div>
-                  <div className="queue-empty-text">No jobs in queue</div>
+            <div className="jobs-view-panel-body">
+              {/* Filters */}
+              <div className="jobs-view-filters">
+                <div className="jobs-view-filter-group">
+                  <label htmlFor="worker-filter">Worker:</label>
+                  <select 
+                    id="worker-filter"
+                    className="jobs-view-filter-select"
+                    title="Filter by worker"
+                    value={selectedWorkerFilter || ""}
+                    onChange={(e) => {
+                      const value = e.target.value || null;
+                      setSelectedWorkerFilter(value);
+                      if (value) {
+                        setExpandedWorker(value);
+                      } else {
+                        setExpandedWorker(null);
+                      }
+                    }}
+                  >
+                    <option value="">All Workers</option>
+                    {workers.map((w) => (
+                      <option key={w.name} value={w.name}>{formatWorkerName(w.name)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="jobs-view-filter-group">
+                  <label htmlFor="category-filter">Category:</label>
+                  <select 
+                    id="category-filter"
+                    className="jobs-view-filter-select"
+                    title="Filter by category"
+                    value={categoryFilter || ""}
+                    onChange={(e) => setCategoryFilter(e.target.value || null)}
+                  >
+                    <option value="">All Categories</option>
+                    {uniqueCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="jobs-view-filter-group">
+                  <label htmlFor="status-filter">Status:</label>
+                  <select 
+                    id="status-filter"
+                    className="jobs-view-filter-select"
+                    title="Filter by status"
+                    value={statusFilter || ""}
+                    onChange={(e) => setStatusFilter(e.target.value || null)}
+                  >
+                    <option value="">All Statuses</option>
+                    {uniqueStatuses.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+                {(selectedWorkerFilter || categoryFilter || statusFilter) && (
+                  <button
+                    className="jobs-view-filter-clear"
+                    onClick={() => {
+                      setSelectedWorkerFilter(null);
+                      setCategoryFilter(null);
+                      setStatusFilter(null);
+                      setExpandedWorker(null);
+                    }}
+                    title="Clear filters"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Jobs List */}
+              {filteredJobs.length === 0 ? (
+                <div className="jobs-view-empty">
+                  <div className="jobs-view-empty-icon">📋</div>
+                  <div className="jobs-view-empty-text">No jobs found</div>
                 </div>
               ) : (
-                <ul className="queue-list">
-                  {queuedJobs.map((job) => (
-                    <li key={job.id} className="queue-item">
-                      <div className="queue-priority">{getPriorityIcon(job.priority)}</div>
-                      <div className="queue-info">
-                        <span className="queue-worker">{formatWorkerName(job.workerName)}</span>
-                        <span className="queue-time">{formatRelativeTime(job.createdAt)}</span>
+                <ul className="jobs-view-list">
+                  {filteredJobs.map((job) => (
+                    <li key={job.id} className={`jobs-view-item jobs-view-item-${job.status}`}>
+                      <div className="jobs-view-item-icon">{getCategoryIcon(job.category)}</div>
+                      <div className="jobs-view-item-info">
+                        <div className="jobs-view-item-header">
+                          <span className="jobs-view-item-worker">{formatWorkerName(job.workerName)}</span>
+                          <span className={`badge badge-${job.status}`}>{job.status}</span>
+                        </div>
+                        <div className="jobs-view-item-meta">
+                          <span className="jobs-view-item-time">{formatRelativeTime(job.createdAt)}</span>
+                          {job.error && (
+                            <span className="jobs-view-item-error" title={job.error}>⚠️ Error</span>
+                          )}
+                        </div>
                       </div>
-                      <button
-                        className="queue-cancel-btn"
-                        onClick={() => cancelJob(job.id)}
-                        title="Cancel job"
-                      >
-                        ×
-                      </button>
+                      {job.status === "queued" && (
+                        <button
+                          className="jobs-view-item-cancel"
+                          onClick={() => cancelJob(job.id)}
+                          title="Cancel job"
+                        >
+                          ×
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>

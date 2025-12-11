@@ -5,16 +5,16 @@
  * - Tool: Crawls club websites and extracts events
  */
 
-import { AbstractTool } from "../../base/AbstractTool";
-import type { Component, ToolContext, ToolResult } from "../../types";
+import { AbstractTool } from "../../../legacy/components/base/AbstractTool";
+import type { Component, ToolContext, ToolResult } from "../../../legacy/components/types";
 import { logDebug, logError, logInfo, logWarn } from "../../../utils/logger";
-import type { Event } from "../../../models/eventStore";
-import { eventStore } from "../../../models/eventStore";
-import { artistStore } from "../../../models/artistStore";
-import { collectiveStore, detectCollectiveFromTitle } from "../../../models/collectiveStore";
-import { labelStore, detectLabelFromText } from "../../../models/labelStore";
+import type { Event } from "../../../legacy/models/eventStore";
+import { eventStore } from "../../../legacy/models/eventStore";
+import { artistStore } from "../../../legacy/models/artistStore";
+import { collectiveStore, detectCollectiveFromTitle } from "../../../legacy/models/collectiveStore";
+import { labelStore, detectLabelFromText } from "../../../legacy/models/labelStore";
 import { detectSoundFromText, extractGenresFromText, extractTagsFromText } from "../../../utils/soundDetector";
-import type { ArtistSound } from "../../../models/artistStore";
+import type { ArtistSound } from "../../../legacy/models/artistStore";
 
 // Lazy import playwright to avoid blocking server startup if not installed
 let playwright: typeof import("playwright") | null = null;

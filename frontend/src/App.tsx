@@ -19,6 +19,7 @@ import { AIControllableProvider, useAIControllableContext } from "./ai-controlla
 import { AISelectionOverlay } from "./ai-controllable/AISelectionOverlay";
 import { avatarCapabilities } from "./components/avatar/AvatarCapabilities";
 import type { AvatarContext } from "./components/avatar/types";
+import { ServiceStatusBar } from "./components/ServiceStatusBar";
 
 type ActivePanel = "preferences" | "conversation" | null;
 
@@ -422,6 +423,9 @@ const AppContent: React.FC = () => {
 
   return (
       <div className="app-shell">
+        {/* Service Status Bar - Top left corner */}
+        <ServiceStatusBar />
+        
         {/* AI Selection Overlay */}
         <AISelectionOverlay />
         

@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package services;
+
+// Generic service call request
+message ServiceCallRequest {
+  string method = 1;
+  string args_json = 2; // JSON-encoded arguments
+}
+
+// Generic service call response
+message ServiceCallResponse {
+  bool success = 1;
+  string data_json = 2; // JSON-encoded response data
+  string error = 3;
+}
+
+// Service definition - all services use the same interface
+service Service {
+  // Unary call (request/response)
+  rpc Call(ServiceCallRequest) returns (ServiceCallResponse);
+  
+  // Server streaming (for future use)
+  rpc StreamCall(ServiceCallRequest) returns (stream ServiceCallResponse);
+}
+

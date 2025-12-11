@@ -3,7 +3,7 @@
  */
 
 import { logDebug, logError, logInfo, logWarn } from "../../utils/logger";
-import type { Artist } from "../models/artistStore";
+import type { Artist } from "../legacy/models/artistStore";
 import { getSettings } from "../config/settings";
 
 export interface ExternalArtistData {

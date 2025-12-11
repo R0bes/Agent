@@ -9,7 +9,7 @@ import { SystemToolSet } from "./systemToolSet";
 import type { ToolDescriptor, HealthStatus } from "./toolSet";
 import type { ToolContext, ToolResult } from "../types";
 import { logInfo, logDebug, logError } from "../../utils/logger";
-import { sendAvatarCommand } from "../../server";
+import { sendAvatarCommand } from "../../utils/avatarCommands";
 
 /**
  * AvatarToolSet - Steuerung des Avatars

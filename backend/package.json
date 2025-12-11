@@ -5,24 +5,30 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:once": "tsx src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.0",
     "@fastify/static": "^6.12.0",
+    "@grpc/grpc-js": "^1.14.2",
+    "@grpc/proto-loader": "^0.8.0",
     "@qdrant/qdrant-js": "^1.16.2",
     "@types/pg": "^8.15.6",
     "bullmq": "^5.0.0",
     "fastify": "^4.27.0",
     "fastify-socket.io": "^5.1.0",
     "ioredis": "^5.0.0",
+    "nats": "^2.29.3",
     "pg": "^8.16.3",
     "playwright": "^1.48.0",
+    "protobufjs": "^7.5.4",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/protobufjs": "^6.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }

@@ -4,7 +4,7 @@
  */
 
 import type { FastifyInstance } from "fastify";
-import { conversationStore } from "../models/conversationStore";
+import { conversationStore } from "../legacy/models/conversationStore";
 import { logInfo, logDebug, logError } from "../utils/logger";
 
 export async function registerConversationRoutes(app: FastifyInstance) {

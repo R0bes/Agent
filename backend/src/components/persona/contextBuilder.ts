@@ -3,7 +3,7 @@
  * Builds optimal LLM context from conversation history and long-term memory
  */
 
-import { conversationStore } from "../../models/conversationStore";
+import { conversationStore } from "../../legacy/models/conversationStore";
 import { messageStore } from "../message/store";
 import { memoryStore } from "../memory";
 import type { MemoryKind } from "../memory/types";

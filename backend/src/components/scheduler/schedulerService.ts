@@ -1,26 +1,84 @@
 /**
- * Scheduler Service
+ * Scheduler Service (Threaded)
  * 
  * Prüft alle enabled Tasks jede Minute und führt sie aus, wenn die Zeit gekommen ist.
  * Nutzt Worker Manager zur Ausführung von Tasks.
  */
 
-import { scheduleStore, type ScheduledTask } from "../../models/scheduleStore";
-import { CronExpressionParser } from "cron-parser";
+import { ThreadedService } from "../base/ThreadedService";
+import { scheduleStore, type ScheduledTask } from "../../legacy/models/scheduleStore";
+import cronParser from "cron-parser";
+import type { BaseEvent, EventType } from "../../events/eventBus";
 import { logInfo, logDebug, logError } from "../../utils/logger";
 
-// In cron-parser v5, use CronExpressionParser.parse() instead of parseExpression()
-const parseExpression = CronExpressionParser.parse;
+const parseExpression = cronParser.parseExpression;
 
-export class SchedulerService {
+export class ThreadedSchedulerService extends ThreadedService {
+  readonly id = "scheduler";
+  readonly name = "Scheduler Service";
+
   private intervalId: NodeJS.Timeout | null = null;
   private isRunning = false;
+
+  /**
+   * Event types this service subscribes to
+   */
+  protected getSubscribedEvents(): EventType[] {
+    return []; // Scheduler doesn't subscribe to events
+  }
+
+  /**
+   * Service initialization (runs in thread)
+   */
+  protected async onCustomInitialize(): Promise<void> {
+    // Initialize Postgres pool in this worker thread
+    try {
+      const { createPostgresPool } = await import("../../database/postgres.js");
+      await createPostgresPool();
+      this.logInfo("Postgres pool initialized in worker thread");
+    } catch (err) {
+      this.logError("Failed to initialize Postgres pool", err);
+      throw err;
+    }
+    
+    await this.start();
+  }
+
+  /**
+   * Service shutdown (runs in thread)
+   */
+  protected async onCustomShutdown(): Promise<void> {
+    await this.stop();
+  }
+
+  /**
+   * Handle direct service calls (runs in thread)
+   */
+  protected async onMessage(message: { method: string; args: any }): Promise<any> {
+    switch (message.method) {
+      case "start":
+        return await this.start();
+      case "stop":
+        return await this.stop();
+      case "checkAndExecuteTasks":
+        return await this.checkAndExecuteTasks();
+      default:
+        throw new Error(`Unknown method: ${message.method}`);
+    }
+  }
+
+  /**
+   * Handle events (runs in thread)
+   */
+  protected async onEvent(event: BaseEvent): Promise<void> {
+    // Scheduler doesn't handle events
+  }
 
   /**
    * Startet den Scheduler Service
    * Prüft jede Minute, ob Tasks ausgeführt werden müssen
    */
-  async start(): Promise<void> {
+  private async start(): Promise<void> {
     if (this.isRunning) {
       logInfo("Scheduler Service: Already running");
       return;
@@ -43,7 +101,7 @@ export class SchedulerService {
   /**
    * Stoppt den Scheduler Service
    */
-  async stop(): Promise<void> {
+  private async stop(): Promise<void> {
     if (!this.isRunning) {
       return;
     }
@@ -200,6 +258,6 @@ export class SchedulerService {
   }
 }
 
-// Singleton instance
-export const schedulerService = new SchedulerService();
+// Export service class for Execution Service registration
+// Note: No singleton instance - Execution Service creates instances in threads
 

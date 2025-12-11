@@ -9,7 +9,7 @@ import { getDatabaseSettings } from "../config/settings";
 import { logInfo, logError, logWarn } from "../utils/logger";
 
 let pool: Pool | null = null;
-const MAX_RETRIES = 10;
+const MAX_RETRIES = parseInt(process.env.POSTGRES_MAX_RETRIES || "5");
 const BASE_DELAY_MS = 1000;
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
@@ -70,6 +70,7 @@ export async function createPostgresPool(): Promise<Pool> {
 
       if (attempt === MAX_RETRIES) {
         logError("Postgres: Exhausted retries, giving up", err);
+        logWarn("Postgres: To start Postgres, run: docker compose -f devops/docker-compose.yml up -d postgres");
         throw err;
       }
 

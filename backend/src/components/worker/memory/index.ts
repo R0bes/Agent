@@ -5,8 +5,8 @@
  * - Worker: Intelligent background worker that compacts and summarises conversation history
  */
 
-import { AbstractWorker } from "../../base/AbstractWorker";
-import type { Component, ToolContext } from "../../types";
+import { AbstractWorker } from "../../../legacy/components/base/AbstractWorker";
+import type { Component, ToolContext } from "../../../legacy/components/types";
 import { memoryStore } from "../../memory";
 import { messageStore } from "../../message/store";
 import { ollamaChat } from "../../llm/ollamaClient";

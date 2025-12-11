@@ -1,0 +1,244 @@
+version: '3.8'
+
+services:
+  # LLM Service Node
+  llm-node:
+    image: R0bes/hexSwitch:latest
+    container_name: hex-llm-node
+    restart: unless-stopped
+    environment:
+      - SERVICE_ID=llm
+      - GRPC_PORT=52001
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=agent
+      - POSTGRES_USER=agent
+      - POSTGRES_PASSWORD=agentpassword
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - NODE_ENV=production
+    ports:
+      - "52001:52001"
+    depends_on:
+      - nats
+      - postgres
+      - qdrant
+    networks:
+      - hexnodes-network
+
+  # Toolbox Service Node
+  toolbox-node:
+    image: R0bes/hexSwitch:latest
+    container_name: hex-toolbox-node
+    restart: unless-stopped
+    environment:
+      - SERVICE_ID=toolbox
+      - GRPC_PORT=52000
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=agent
+      - POSTGRES_USER=agent
+      - POSTGRES_PASSWORD=agentpassword
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - NODE_ENV=production
+    ports:
+      - "52000:52000"
+    depends_on:
+      - nats
+      - postgres
+      - qdrant
+    networks:
+      - hexnodes-network
+
+  # Memory Service Node
+  memory-node:
+    image: R0bes/hexSwitch:latest
+    container_name: hex-memory-node
+    restart: unless-stopped
+    environment:
+      - SERVICE_ID=memory
+      - GRPC_PORT=52004
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=agent
+      - POSTGRES_USER=agent
+      - POSTGRES_PASSWORD=agentpassword
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - NODE_ENV=production
+    ports:
+      - "52004:52004"
+    depends_on:
+      - nats
+      - postgres
+      - qdrant
+    networks:
+      - hexnodes-network
+
+  # Persona Service Node
+  persona-node:
+    image: R0bes/hexSwitch:latest
+    container_name: hex-persona-node
+    restart: unless-stopped
+    environment:
+      - SERVICE_ID=persona
+      - GRPC_PORT=52002
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=agent
+      - POSTGRES_USER=agent
+      - POSTGRES_PASSWORD=agentpassword
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - NODE_ENV=production
+    ports:
+      - "52002:52002"
+    depends_on:
+      - nats
+      - postgres
+      - qdrant
+      - llm-node
+      - memory-node
+    networks:
+      - hexnodes-network
+
+  # Work Manager Service Node (Scheduler)
+  workmanager-node:
+    image: R0bes/hexSwitch:latest
+    container_name: hex-workmanager-node
+    restart: unless-stopped
+    environment:
+      - SERVICE_ID=scheduler
+      - GRPC_PORT=52003
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=agent
+      - POSTGRES_USER=agent
+      - POSTGRES_PASSWORD=agentpassword
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - NODE_ENV=production
+    ports:
+      - "52003:52003"
+    depends_on:
+      - nats
+      - postgres
+      - qdrant
+    networks:
+      - hexnodes-network
+
+  # BFF Service Node (Backend-for-Frontend)
+  bff-node:
+    image: R0bes/hexSwitch:latest
+    container_name: hex-bff-node
+    restart: unless-stopped
+    environment:
+      - SERVICE_ID=bff
+      - BACKEND_PORT=3001
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=agent
+      - POSTGRES_USER=agent
+      - POSTGRES_PASSWORD=agentpassword
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - GRPC_TOOLBOX_PORT=52000
+      - GRPC_LLM_PORT=52001
+      - GRPC_PERSONA_PORT=52002
+      - GRPC_SCHEDULER_PORT=52003
+      - GRPC_MEMORY_PORT=52004
+      - NODE_ENV=production
+    ports:
+      - "3001:3001"
+    depends_on:
+      - nats
+      - postgres
+      - qdrant
+      - llm-node
+      - toolbox-node
+      - memory-node
+      - persona-node
+      - workmanager-node
+    networks:
+      - hexnodes-network
+
+  # Infrastructure Services
+  postgres:
+    image: postgres:16
+    container_name: hex-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agent
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agentpassword
+    ports:
+      - "5433:5432"  # Different port to avoid conflict with main postgres
+    volumes:
+      - hex-postgres-data:/var/lib/postgresql/data
+    networks:
+      - hexnodes-network
+
+  redis:
+    image: redis:7
+    container_name: hex-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"  # Different port to avoid conflict with main redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    networks:
+      - hexnodes-network
+
+  qdrant:
+    image: qdrant/qdrant:v1.16.2
+    container_name: hex-qdrant
+    restart: unless-stopped
+    ports:
+      - "6335:6333"  # Different port to avoid conflict with main qdrant
+      - "6336:6334"
+    volumes:
+      - hex-qdrant-data:/qdrant/storage
+    networks:
+      - hexnodes-network
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: hex-nats
+    restart: unless-stopped
+    ports:
+      - "4223:4222"  # Different port to avoid conflict with main nats
+      - "8223:8222"  # Monitoring port
+    command: ["-js"]  # Enable JetStream
+    networks:
+      - hexnodes-network
+
+networks:
+  hexnodes-network:
+    driver: bridge
+
+volumes:
+  hex-postgres-data:
+  hex-qdrant-data:
+
+
+
+
+
+
+
+
+
+
+

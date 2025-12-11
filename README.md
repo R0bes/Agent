@@ -60,7 +60,7 @@ npm install
 npm run dev
 ```
 
-Frontend dev server runs on `http://localhost:5173` and is configured
+Frontend dev server runs on `http://localhost:5174` and is configured
 to proxy `/api` and `/ws` to the backend.
 
 ## Documentation

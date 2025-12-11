@@ -4,8 +4,8 @@
  * Generic task worker for executing various background tasks.
  */
 
-import { AbstractWorker } from "../../base/AbstractWorker";
-import type { Component, ToolContext } from "../../types";
+import { AbstractWorker } from "../../../legacy/components/base/AbstractWorker";
+import type { Component, ToolContext } from "../../../legacy/components/types";
 import { logInfo, logDebug } from "../../../utils/logger";
 
 /**
